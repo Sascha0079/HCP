@@ -1,6 +1,8 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "MatchPlay Calculator",
+  "name": "Berechne einfach deine Vorgabe im Matchplay",
+  "description": "Einfaches Tool zur Berechnung der Vorgabe im Matchplay für Golfspieler.",
+  "lang": "de",
   "icons": [
     {
       "src": "favicon.ico",
