@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#2E7D32", // Deine Akzentfarbe
+  "background_color": "#f4f7f6" // Deine Hintergrundfarbe
 }
