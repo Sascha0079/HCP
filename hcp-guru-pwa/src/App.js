@@ -17,8 +17,8 @@ function calculateCourseHcpByFormula(hcpi, cr, sr, par) {
 }
 
 const genderOptions = [
-    { label: "Herren", value: "Herren" },
-    { label: "Damen", value: "Damen" },
+    { label: "Herren", value: "Herren", icon: "" }, // NEU: Icon hinzugefügt
+    { label: "Damen", value: "Damen", icon: "" },   // NEU: Icon hinzugefügt
 ];
 const defaultGender = "Herren";
 
@@ -251,51 +251,75 @@ function App() {
     const playerLower = {idLabel: isP1CourseLower ? player1_ID_Label : player2_ID_Label, hcp: isP1CourseLower ? p1ActualHcpString : p2ActualHcpString, courseHcp: isP1CourseLower ? player1_CourseHCP : player2_CourseHCP, percent: 60};
     const playerHigher = {idLabel: isP1CourseLower ? player2_ID_Label : player1_ID_Label, hcp: isP1CourseLower ? p2ActualHcpString : p1ActualHcpString, courseHcp: isP1CourseLower ? player2_CourseHCP : player1_CourseHCP, percent: 40};
     const lowerContrib = playerLower.courseHcp * (playerLower.percent / 100); const higherContrib = playerHigher.courseHcp * (playerHigher.percent / 100);
-    return (<div className="team-detail-box"><h4>{teamLabel} ({selectedCourseName || 'Platz wählen'})</h4><div className="player-contribution"><span>{playerLower.idLabel} (HCP: {playerLower.hcp}): Spielvorgabe {playerLower.courseHcp} * {playerLower.percent}% = <strong>{lowerContrib.toFixed(1)}</strong></span></div><div className="player-contribution"><span>{playerHigher.idLabel} (HCP: {playerHigher.hcp}): Spielvorgabe {playerHigher.courseHcp} * {playerHigher.percent}% = <strong>{higherContrib.toFixed(1)}</strong></span></div><div className="team-total-hcp"><span>Team-Vorgabe: </span><span className="result-value">{teamHcpTotal !== null ? teamHcpTotal.toFixed(1) : '---'}</span></div></div>);
+    return (<div className="team-detail-box"><h4>{teamLabel} ({selectedCourseName || 'Platz wählen'})</h4><div className="player-contribution"><span>{playerLower.idLabel} ({playerLower.hcp}): Vorgabe {playerLower.courseHcp} * {playerLower.percent}% = <strong>{lowerContrib.toFixed(1)}</strong></span></div><div className="player-contribution"><span>{playerHigher.idLabel} ({playerHigher.hcp}): Vorgabe {playerHigher.courseHcp} * {playerHigher.percent}% = <strong>{higherContrib.toFixed(1)}</strong></span></div><div className="team-total-hcp"><span>Team-Vorgabe: </span><span className="result-value">{teamHcpTotal !== null ? teamHcpTotal.toFixed(1) : '---'}</span></div></div>);
   };
 
   const PlayerInputSection = ({ playerNum, teamLabel = "", selectedGender, setSelectedGender, availableTees, selectedTeeColor, setSelectedTeeColor, hcpInputWhole, setHcpInputWhole, hcpInputDecimal, setHcpInputDecimal, courseHcp }) => {
     return (
         <section className="player-section">
           <h2>Spieler {playerNum} {appMode === 'team' && `(${teamLabel})`}</h2>
-          <div className="input-group gender-tee-group"> 
-            <div className="gender-radio-group input-sub-group">
-              <span className="input-label sub-group-label">Geschlecht:</span>
-              <div className="radio-options">
-                {genderOptions.map(option => (<label key={`p${playerNum}-gender-${option.value}`} className="radio-label"><input type="radio" name={`gender-p${playerNum}`} value={option.value} checked={selectedGender === option.value} onChange={(e) => setSelectedGender(e.target.value)}/>{option.label}</label>))}
-              </div>
-            </div>
-            <div className="tee-color-select-group input-sub-group">
-              <label htmlFor={`tee-select-p${playerNum}`} className="input-label sub-group-label">Abschlag:</label>
-              <select id={`tee-select-p${playerNum}`} value={selectedTeeColor} onChange={(e) => setSelectedTeeColor(e.target.value)} disabled={availableTees.length === 0}>
-                {availableTees.length === 0 && <option value="">- Geschlecht wählen -</option>}
-                {availableTees.map(teeColor => (<option key={`p${playerNum}-tee-${teeColor}`} value={teeColor}><span className={`tee-color-indicator ${teeColorVisuals[teeColor]?.colorClass || ''}`}>{teeColorVisuals[teeColor]?.emoji || " "}</span> {teeColor}</option>))}
-              </select>
-            </div>
-          </div>
-          <div className="input-group hcp-picker-group">
-            <label className="input-label hcp-main-label">HCP:</label>
-            <div className="hcp-pickers">
-                <WheelPicker 
-                    options={hcpiIntegerOptions}
-                    value={hcpInputWhole}
-                    onChange={setHcpInputWhole}
-                    itemHeight={30} // Höhe pro Item im Wheel
-                    idPrefix={`p${playerNum}-hcp-whole`}
-                />
-                <span className="hcp-decimal-separator">.</span>
-                <WheelPicker 
-                    options={hcpiDecimalOptions}
-                    value={hcpInputDecimal}
-                    onChange={setHcpInputDecimal}
-                    itemHeight={30}
-                    idPrefix={`p${playerNum}-hcp-decimal`}
-                />
-            </div>
+          <div className="player-input-grid"> {/* NEUER Grid-Container */}
+                  
+                  {/* Zeile 1: Geschlecht */}
+                  <label className="input-label">Geschlecht:</label>
+                  <div className="input-control"> {/* Container für die Controls in der rechten Spalte */}
+                    <div className="gender-radio-group"> {/* Behält die Radio-Gruppierung */}
+                      <div className="radio-options">
+                          {genderOptions.map(option => (
+                          <label key={`p${playerNum}-gender-${option.value}`} className="radio-label">
+                            <input 
+                              type="radio" 
+                              name={`gender-p${playerNum}`} 
+                              value={option.value}
+                              checked={selectedGender === option.value}
+                              onChange={(e) => setSelectedGender(e.target.value)}
+                            />
+                            <span className="gender-icon">{option.icon}</span>
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+              
+
+                  <label htmlFor={`tee-select-p${playerNum}`} className="input-label">Abschlag:</label>
+                  <div className="input-control">
+                    <div className="tee-color-select-group"> 
+                        <select id={`tee-select-p${playerNum}`} value={selectedTeeColor} onChange={(e) => setSelectedTeeColor(e.target.value)} disabled={availableTees.length === 0}>
+                          {availableTees.length === 0 && <option value="">- Geschlecht wählen -</option>}
+                          {availableTees.map(teeColor => (<option key={`p${playerNum}-tee-${teeColor}`} value={teeColor}><span className={`tee-color-indicator ${teeColorVisuals[teeColor]?.colorClass || ''}`}>{teeColorVisuals[teeColor]?.emoji || " "}</span> {teeColor}</option>))}
+                        </select>
+                    </div>
+                </div>        
+
+                <label className="input-label">HCP:</label>
+                  <div className="input-control">
+                    <div className="hcp-pickers"> {/* Behält die Picker-Gruppierung */}
+                      <WheelPicker 
+                          options={hcpiIntegerOptions}
+                          value={hcpInputWhole}
+                          onChange={setHcpInputWhole}
+                          itemHeight={30} // Höhe pro Item im Wheel
+                          idPrefix={`p${playerNum}-hcp-whole`}
+                      />
+                      <span className="hcp-decimal-separator">.</span>
+                      <WheelPicker 
+                          options={hcpiDecimalOptions}
+                          value={hcpInputDecimal}
+                          onChange={setHcpInputDecimal}
+                          itemHeight={30}
+                          idPrefix={`p${playerNum}-hcp-decimal`}
+                      />
+                    </div>
+                  </div>
+                
           </div>
           <PlayerHcpDisplay courseHcp={courseHcp} />
         </section>
     );
+
+    
   };
 
   return (
@@ -314,7 +338,7 @@ function App() {
         {appMode === 'single' && (
           <section className="results-container single-matchplay-results">
             <h3>Einzel-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
-            {courseHcpP1 !== null && courseHcpP2 !== null && diffSingle !== null && (<div className="calculation-detail"><p>Berechnung ({selectedCourseName}):</p><span>{courseHcpP1 > courseHcpP2 ? `Spielvorgabe P1 (${courseHcpP1}) - Spielvorgabe P2 (${courseHcpP2})` : `Spielvorgabe P2 (${courseHcpP2}) - Spielvorgabe P1 (${courseHcpP1})`} = {diffSingle}</span><span>{diffSingle} * 75% = {(diffSingle * 0.75).toFixed(2)} ➔ Gerundet: <strong>{matchplayVorgabeSingle}</strong></span></div>)}
+            {courseHcpP1 !== null && courseHcpP2 !== null && diffSingle !== null && (<div className="calculation-detail"><p>Berechnung ({selectedCourseName}):</p><span>{courseHcpP1 > courseHcpP2 ? `Spieler 1 (${courseHcpP1}) - Spieler 2 (${courseHcpP2})` : `Spieler 2 (${courseHcpP2}) - Spieler 1 (${courseHcpP1})`} = {diffSingle}</span><span>{diffSingle} * 75% = {(diffSingle * 0.75).toFixed(2)} ➔ Gerundet: <strong>{matchplayVorgabeSingle}</strong></span></div>)}
             <div className="result-box"><p>Vorgabe: {receivingPlayerSingle}</p><p className="result-value">{matchplayVorgabeSingle} {matchplayVorgabeSingle !== '---' && matchplayVorgabeSingle !== 0 ? (matchplayVorgabeSingle === 1 ? "Schlag" : "Schläge") : ""}</p></div>
           </section>
         )}
@@ -323,14 +347,14 @@ function App() {
             <PlayerInputSection playerNum={3} teamLabel="Team B" selectedGender={selectedGenderP3} setSelectedGender={setSelectedGenderP3} availableTees={availableTeesP3} selectedTeeColor={selectedTeeColorP3} setSelectedTeeColor={setSelectedTeeColorP3} hcpInputWhole={hcpInputWholeP3} setHcpInputWhole={setHcpInputWholeP3} hcpInputDecimal={hcpInputDecimalP3} setHcpInputDecimal={setHcpInputDecimalP3} courseHcp={courseHcpP3}/>
             <PlayerInputSection playerNum={4} teamLabel="Team B" selectedGender={selectedGenderP4} setSelectedGender={setSelectedGenderP4} availableTees={availableTeesP4} selectedTeeColor={selectedTeeColorP4} setSelectedTeeColor={setSelectedTeeColorP4} hcpInputWhole={hcpInputWholeP4} setHcpInputWhole={setHcpInputWholeP4} hcpInputDecimal={hcpInputDecimalP4} setHcpInputDecimal={setHcpInputDecimalP4} courseHcp={courseHcpP4}/>
             <section className="results-container team-handicap-display">
-                <h3>Team Spielvorgaben ({selectedCourseName || 'Platz wählen'})</h3>
+                <h3>Team Vorgaben ({selectedCourseName || 'Platz wählen'})</h3>
                 <TeamHcpDetailDisplay teamLabel="Team A" player1_ID_Label="Spieler 1" player1_HCP_String={hcpInputStringP1} player1_CourseHCP={courseHcpP1} player2_ID_Label="Spieler 2" player2_HCP_String={hcpInputStringP2} player2_CourseHCP={courseHcpP2} teamHcpTotal={teamAHandicap} />
                 <hr className="team-divider" />
                 <TeamHcpDetailDisplay teamLabel="Team B" player1_ID_Label="Spieler 3" player1_HCP_String={hcpInputStringP3} player1_CourseHCP={courseHcpP3} player2_ID_Label="Spieler 4" player2_HCP_String={hcpInputStringP4} player2_CourseHCP={courseHcpP4} teamHcpTotal={teamBHandicap}/>
             </section>
             <section className="results-container team-matchplay-results">
-              <h3>Team-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
-              {teamAHandicap !== null && teamBHandicap !== null && teamDiff !== null && (<div className="calculation-detail"><p>Berechnung Team-Vorgabe ({selectedCourseName}):</p><span>|{teamAHandicap.toFixed(1)} (Team A) - {teamBHandicap.toFixed(1)} (Team B)| = {teamDiff.toFixed(1)}</span></div>)}
+              <h3>Matchplay Vorgabe</h3>
+              {teamAHandicap !== null && teamBHandicap !== null && teamDiff !== null && (<div className="calculation-detail"><p>Berechnung</p><span>|{teamAHandicap.toFixed(1)} (Team A) - {teamBHandicap.toFixed(1)} (Team B)| = {teamDiff.toFixed(1)}</span></div>)}
               <div className="result-box"><p>Vorgabe: {receivingTeam}</p><p className="result-value">{matchplayVorgabeTeam} {matchplayVorgabeTeam !== '---' && matchplayVorgabeTeam !== 0 ? (matchplayVorgabeTeam === 1 ? "Schlag" : "Schläge") : ""}</p></div>
             </section>
           </>
