@@ -30,13 +30,14 @@ code {
 .App-header {
   background-image: url('/images/banner3.png'); /* Pfad anpassen */
   background-size: cover;
+  /*background-size: contain; */
   background-position: center center;
   background-repeat: no-repeat;
   
   padding: 20px; /* Etwas weniger Padding, da kein Text mehr direkt im Banner */
   color: white;
   border-radius: 0 0 12px 12px;
-  margin-bottom: 25px; 
+  margin-bottom: 15px; 
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
   position: relative; 
@@ -44,6 +45,15 @@ code {
   display: flex; 
   justify-content: center;
   align-items: center;
+}
+
+.header-image-tag {
+  display: block; /* Verhindert zusätzlichen Leerraum unter dem Bild */
+  max-width: 100%;  /* Stellt sicher, dass das Bild nicht breiter als der Container ist */
+  height: auto;     /* Behält das Seitenverhältnis bei, wenn die Breite angepasst wird */
+  /* Oder, um es komplett einzupassen: */
+  /* object-fit: contain; */
+  /* max-height: 150px; */ /* Setze eine maximale Höhe für den Header-Bereich */
 }
 
 /* Overlay für bessere Lesbarkeit des Banners, falls das Bild sehr hell ist */
