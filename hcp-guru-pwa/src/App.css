@@ -385,6 +385,15 @@ main {
   color: #777;
 }
 
+.App-footer .build-time {
+  margin-top: 10px; /* Etwas Abstand zur vorherigen Zeile */
+  font-size: 0.8em; /* Etwas kleiner */
+  color: #888;     /* Etwas heller als der Haupt-Footer-Text */
+}
+
+
+
+
 /* Media Queries für Responsivität */
 @media (max-width: 600px) {
   .selectors-row {

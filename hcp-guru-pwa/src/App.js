@@ -4,29 +4,14 @@ import './App.css'; // Dein bestehendes CSS
 import { golfData } from './golfData'; 
 
 // Funktion zur Berechnung des Course Handicaps mit der Formel
-// Unterscheidet jetzt dynamisch zwischen 9 und 18 Loch basierend auf Par
 function calculateCourseHcpByFormula(hcpi, cr, sr, par) {
     if (isNaN(hcpi) || cr === undefined || sr === undefined || par === undefined) {
         return null; 
     }
-
     let slopeDivider = 113;
-    // Annahme: Ein Platz mit Par < 45 ist ein 9-Loch-Platz (Schwelle anpassen, falls nötig)
-    // Offiziell ist es besser, wenn die Datenstruktur explizit sagt, ob es 9 oder 18 Loch sind.
-    // Für die Formel: SR / (113/2) ist dasselbe wie SR * 2 / 113, wenn SR der 18-Loch-Slope ist,
-    // der für 9 Loch verwendet wird. Wenn SR bereits der 9-Loch-Slope ist, bleibt der Divisor 113.
-    // Deine Formel war: HCPI * (Slope Rating / (113/2)) + (Course Rating - Par)
-    // Dies impliziert, dass der angegebene SR für 9-Loch-Plätze der 18-Loch-SR ist
-    // und für die 9-Loch-Berechnung effektiv verdoppelt werden muss im Verhältnis zum Standard-Slope von 113.
-    // Oder, dass der Slope-Divisor für 9-Loch-Plätze 56.5 (113/2) ist.
-
-    // Wir folgen deiner Formel: Slope Rating / (113/2)
-    // Diese Logik wird angewendet, wenn wir wissen, dass es ein 9-Loch Platz ist.
-    // Die Erkennung (Par < 40) ist ein Indikator.
-    if (par < 45) { // Schwelle für 9-Loch-Platz-Erkennung (z.B. Par < 45 oder < 60)
-        slopeDivider = 113 * 2; // Gemäß deiner Formel
+    if (par < 45) { // Schwelle für 9-Loch-Platz-Erkennung 
+        slopeDivider = 113 / 2; 
     }
-
     const courseHandicapExact = hcpi * (sr / slopeDivider) + (cr - par);
     return Math.round(courseHandicapExact); 
 }
@@ -47,11 +32,10 @@ function App() {
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [selectedCourseName, setSelectedCourseName] = useState("");
-  const [selectedCoursePar, setSelectedCoursePar] = useState(null); // Neu: Par des ausgewählten Platzes
+  const [selectedCoursePar, setSelectedCoursePar] = useState(null);
 
   const [appMode, setAppMode] = useState('single'); 
 
-  // Spieler States
   const [selectedTee1, setSelectedTee1] = useState(defaultTeeValue);
   const [hcpInput1, setHcpInput1] = useState('');
   const [courseHcpP1, setCourseHcpP1] = useState(null);
@@ -68,31 +52,50 @@ function App() {
   const [hcpInput4, setHcpInput4] = useState('');
   const [courseHcpP4, setCourseHcpP4] = useState(null);
 
-  // Einzel Matchplay Vorgabe
   const [matchplayVorgabeSingle, setMatchplayVorgabeSingle] = useState('---');
   const [receivingPlayerSingle, setReceivingPlayerSingle] = useState('');
   const [diffSingle, setDiffSingle] = useState(null); 
 
-  // Team Handicaps
   const [teamAHandicap, setTeamAHandicap] = useState(null);
   const [teamBHandicap, setTeamBHandicap] = useState(null);
 
-  // Team Matchplay Vorgabe
   const [matchplayVorgabeTeam, setMatchplayVorgabeTeam] = useState('---');
   const [receivingTeam, setReceivingTeam] = useState('');
   const [teamDiff, setTeamDiff] = useState(null); 
 
-  // Effekt zum Aktualisieren der verfügbaren Plätze und des ausgewählten Platzes bei Clubwechsel
+  const [buildTime, setBuildTime] = useState(''); // NEU: State für Build-Zeitstempel
+
+  // NEU: Effekt zum Formatieren und Setzen des Build-Zeitstempels
+  useEffect(() => {
+    const buildTimestamp = process.env.REACT_APP_BUILD_TIME;
+    if (buildTimestamp) {
+      try {
+        const date = new Date(buildTimestamp);
+        // Formatieren des Datums, z.B. TT.MM.JJJJ HH:MM
+        const options = { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        };
+        setBuildTime(date.toLocaleString('de-DE', options) + " Uhr");
+      } catch (e) {
+        console.error("Error parsing build timestamp:", e);
+        setBuildTime("N/A");
+      }
+    } else {
+        setBuildTime("N/A");
+    }
+  }, []); // Leeres Abhängigkeitsarray, damit dies nur einmal beim Mounten ausgeführt wird
+
+
   useEffect(() => {
     if (selectedClubName && golfData[selectedClubName]) {
       const courses = Object.keys(golfData[selectedClubName]);
       setAvailableCourses(courses);
       if (courses.length > 0) {
         setSelectedCourseName(courses[0]);
-        // Par des initial ausgewählten Platzes setzen (benötigt Zugriff auf Gender/Farbe, nehmen wir Standard oder ersten verfügbaren)
-        // Dies ist etwas knifflig, da Par von Gender/Farbe abhängt.
-        // Für die Formel brauchen wir Par des *spezifischen Abschlags*.
-        // Wir setzen hier erstmal nur den Namen, Par wird in calculatePlayerCourseHcpAndUpdateState relevant.
       } else {
         setSelectedCourseName("");
       }
@@ -102,9 +105,6 @@ function App() {
     }
   }, [selectedClubName]);
 
-  // Effekt zum Setzen des Par-Wertes des aktuell ausgewählten Abschlags (für den ersten Spieler als Referenz)
-  // Dies dient nur der Anzeige oder einer groben 9/18-Loch-Erkennung, wenn benötigt.
-  // Die exakte Par-Nutzung erfolgt in der Hauptberechnungsfunktion.
   useEffect(() => {
     if (selectedClubName && selectedCourseName && selectedTee1) {
         const teeInfo = teeOptions.find(t => t.value === selectedTee1);
@@ -123,8 +123,6 @@ function App() {
     }
   }, [selectedClubName, selectedCourseName, selectedTee1]);
 
-
-  // Funktion zur Berechnung der Spielvorgabe für einen Spieler
   const calculatePlayerCourseHcpAndUpdateState = (
     hcpInputString, 
     selectedTeeValue, 
@@ -153,7 +151,6 @@ function App() {
       const courseSpecificData = golfData[currentClubName]?.[currentCourseName]?.[gender]?.[color];
       if (courseSpecificData) {
         const { CR, SR, Par } = courseSpecificData;
-        // Die Funktion calculateCourseHcpByFormula verwendet jetzt Par, um 9/18 Loch zu unterscheiden
         const ch = calculateCourseHcpByFormula(hcpi, CR, SR, Par);
         setCourseHcpState(ch);
       } else {
@@ -170,7 +167,6 @@ function App() {
   useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput3, selectedTee3, selectedClubName, selectedCourseName, setCourseHcpP3); }, [hcpInput3, selectedTee3, selectedClubName, selectedCourseName]);
   useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput4, selectedTee4, selectedClubName, selectedCourseName, setCourseHcpP4); }, [hcpInput4, selectedTee4, selectedClubName, selectedCourseName]);
 
-  // Effekt für Einzel-Matchplay-Vorgabe
   useEffect(() => {
     if (courseHcpP1 !== null && courseHcpP2 !== null) {
       const diff = Math.abs(courseHcpP1 - courseHcpP2);
@@ -185,8 +181,6 @@ function App() {
     }
   }, [courseHcpP1, courseHcpP2]);
 
-
-  // Funktion zur Berechnung eines Team-Handicaps
   const calculateTeamHandicap = (hcpPlayerA, hcpPlayerB) => {
     if (hcpPlayerA === null || hcpPlayerB === null) return null;
     const lowerHcp = Math.min(hcpPlayerA, hcpPlayerB);
@@ -195,17 +189,14 @@ function App() {
     return Math.round(teamHcp * 10) / 10; 
   };
 
-  // Effekt für Team A Handicap
   useEffect(() => {
     setTeamAHandicap(calculateTeamHandicap(courseHcpP1, courseHcpP2));
   }, [courseHcpP1, courseHcpP2]);
 
-  // Effekt für Team B Handicap
   useEffect(() => {
     setTeamBHandicap(calculateTeamHandicap(courseHcpP3, courseHcpP4));
   }, [courseHcpP3, courseHcpP4]);
 
-  // Effekt für Team-Matchplay-Vorgabe
   useEffect(() => {
     if (teamAHandicap !== null && teamBHandicap !== null) {
       const diff = Math.abs(teamAHandicap - teamBHandicap);
@@ -220,14 +211,12 @@ function App() {
     }
   }, [teamAHandicap, teamBHandicap]);
 
-  // Hilfskomponente für die Spielvorgabenanzeige
   const PlayerHcpDisplay = ({ courseHcp, labelPrefix = "Spielvorgabe" }) => (
     <div className="player-course-hcp-display compact">
       <span>{labelPrefix} ({selectedCourseName || 'Platz wählen'}): <strong>{courseHcp !== null ? courseHcp : '-'}</strong></span>
     </div>
   );
 
-  // Hilfskomponente für detaillierte Team-HCP-Anzeige
   const TeamHcpDetailDisplay = ({ 
     teamLabel, 
     player1_ID_Label, player1_HCPI, player1_CourseHCP,
@@ -246,11 +235,9 @@ function App() {
         </div>
       );
     }
-
     const p1ActualHcpi = player1_HCPI || "N/A";
     const p2ActualHcpi = player2_HCPI || "N/A";
     const isP1CourseLower = player1_CourseHCP <= player2_CourseHCP;
-    
     const playerLower = {
         idLabel: isP1CourseLower ? player1_ID_Label : player2_ID_Label,
         hcpi: isP1CourseLower ? p1ActualHcpi : p2ActualHcpi,
@@ -263,10 +250,8 @@ function App() {
         courseHcp: isP1CourseLower ? player2_CourseHCP : player1_CourseHCP,
         percent: 40
     };
-
     const lowerContrib = playerLower.courseHcp * (playerLower.percent / 100);
     const higherContrib = playerHigher.courseHcp * (playerHigher.percent / 100);
-
     return (
       <div className="team-detail-box">
         <h4>{teamLabel} ({selectedCourseName || 'Platz wählen'})</h4>
@@ -284,11 +269,9 @@ function App() {
     );
   };
 
-
   return (
     <div className="App">
       <header className="App-header">
-        {/* Clubname wird nicht mehr im Header angezeigt, sondern als Teil der Auswahl */}
       </header>
       <main>
         <div className="global-controls">
@@ -307,7 +290,6 @@ function App() {
                         ))}
                     </select>
                 </div>
-                
                 {availableCourses.length > 0 && (
                     <div className="input-group course-selector-group">
                         <label htmlFor="course-select">Platz ({selectedCoursePar !== null ? `Par ${selectedCoursePar}` : 'Par ?'}):</label>
@@ -325,7 +307,6 @@ function App() {
                     </div>
                 )}
             </div> 
-
             <div className="mode-selector modern-tabs">
             <button 
                 className={`tab-button ${appMode === 'single' ? 'active' : ''}`}
@@ -342,7 +323,6 @@ function App() {
             </div>
         </div>
 
-        {/* Spieler 1 Eingaben */}
         <section className="player-section">
           <h2>Spieler 1 {appMode === 'team' && '(Team A)'}</h2>
           <div className="input-group">
@@ -365,7 +345,6 @@ function App() {
           <PlayerHcpDisplay courseHcp={courseHcpP1} />
         </section>
 
-        {/* Spieler 2 Eingaben */}
         <section className="player-section">
           <h2>Spieler 2 {appMode === 'team' && '(Team A)'}</h2>
           <div className="input-group">
@@ -388,7 +367,6 @@ function App() {
           <PlayerHcpDisplay courseHcp={courseHcpP2} />
         </section>
 
-        {/* Einzel Matchplay Ergebnisse */}
         {appMode === 'single' && (
           <section className="results-container single-matchplay-results">
             <h3>Einzel-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
@@ -406,17 +384,15 @@ function App() {
               </div>
             )}
             <div className="result-box">
-              <p></p>
-              <p className="result-value">{receivingPlayerSingle} {matchplayVorgabeSingle} {matchplayVorgabeSingle !== '---' && matchplayVorgabeSingle !== 0 ? (matchplayVorgabeSingle === 1 ? "Schlag" : "Schläge") : ""}</p>
+              <p>Vorgabe: {receivingPlayerSingle}</p>
+              <p className="result-value">{matchplayVorgabeSingle} {matchplayVorgabeSingle !== '---' && matchplayVorgabeSingle !== 0 ? (matchplayVorgabeSingle === 1 ? "Schlag" : "Schläge") : ""}</p>
             </div>
           </section>
         )}
         
-        {/* Team Modus */}
         {appMode === 'team' && (
           <>
             <hr className="section-divider" />
-            {/* Spieler 3 Eingaben */}
             <section className="player-section">
               <h2>Spieler 3 (Team B)</h2>
               <div className="input-group">
@@ -439,7 +415,6 @@ function App() {
               <PlayerHcpDisplay courseHcp={courseHcpP3} />
             </section>
 
-            {/* Spieler 4 Eingaben */}
             <section className="player-section">
               <h2>Spieler 4 (Team B)</h2>
               <div className="input-group">
@@ -462,7 +437,6 @@ function App() {
               <PlayerHcpDisplay courseHcp={courseHcpP4} />
             </section>
 
-            {/* Team Spielvorgaben Anzeige */}
             <section className="results-container team-handicap-display">
                 <h3>Team Spielvorgaben ({selectedCourseName || 'Platz wählen'})</h3>
                 <TeamHcpDetailDisplay 
@@ -480,7 +454,6 @@ function App() {
                 />
             </section>
 
-            {/* Team Matchplay Ergebnisse */}
             <section className="results-container team-matchplay-results">
               <h3>Team-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
               {teamAHandicap !== null && teamBHandicap !== null && teamDiff !== null && (
@@ -492,8 +465,8 @@ function App() {
                 </div>
               )}
               <div className="result-box">
-                <p></p>
-                <p className="result-value">{receivingTeam} {matchplayVorgabeTeam} {matchplayVorgabeTeam !== '---' && matchplayVorgabeTeam !== 0 ? (matchplayVorgabeTeam === 1 ? "Schlag" : "Schläge") : ""}</p>
+                <p>Vorgabe: {receivingTeam}</p>
+                <p className="result-value">{matchplayVorgabeTeam} {matchplayVorgabeTeam !== '---' && matchplayVorgabeTeam !== 0 ? (matchplayVorgabeTeam === 1 ? "Schlag" : "Schläge") : ""}</p>
               </div>
             </section>
           </>
@@ -501,6 +474,7 @@ function App() {
       </main>
       <footer className="App-footer">
         <p>Alle Angaben ohne Gewähr.</p>
+        {buildTime && <p className="build-time">Letzte Aktualisierung: {buildTime}</p>} {/* NEU */}
       </footer>
     </div>
   );
