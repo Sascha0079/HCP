@@ -1,30 +1,34 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
 import './App.css'; // Dein bestehendes CSS
-import { golfData } from './golfData';
+import { golfData } from './golfData'; 
 
-// Hilfsfunktion zum Finden des Course Handicaps (bleibt gleich)
-function findCourseHcp(hcpi, handicapEntries) {
-    if (isNaN(hcpi) || !handicapEntries || handicapEntries.length === 0) {
-        return "N/A";
+// Funktion zur Berechnung des Course Handicaps mit der Formel
+// Unterscheidet jetzt dynamisch zwischen 9 und 18 Loch basierend auf Par
+function calculateCourseHcpByFormula(hcpi, cr, sr, par) {
+    if (isNaN(hcpi) || cr === undefined || sr === undefined || par === undefined) {
+        return null; 
     }
-    for (const entry of handicapEntries) {
-        const rangeParts = entry.hcpi_range.split("–").map(s => s.trim());
-        const minHcpi = parseFloat(rangeParts[0].replace(",", "."));
-        const maxHcpi = rangeParts.length > 1 ? parseFloat(rangeParts[1].replace(",", ".")) : minHcpi;
-        if (hcpi >= minHcpi && hcpi <= maxHcpi) {
-            return entry.course_hcp;
-        }
+
+    let slopeDivider = 113;
+    // Annahme: Ein Platz mit Par < 45 ist ein 9-Loch-Platz (Schwelle anpassen, falls nötig)
+    // Offiziell ist es besser, wenn die Datenstruktur explizit sagt, ob es 9 oder 18 Loch sind.
+    // Für die Formel: SR / (113/2) ist dasselbe wie SR * 2 / 113, wenn SR der 18-Loch-Slope ist,
+    // der für 9 Loch verwendet wird. Wenn SR bereits der 9-Loch-Slope ist, bleibt der Divisor 113.
+    // Deine Formel war: HCPI * (Slope Rating / (113/2)) + (Course Rating - Par)
+    // Dies impliziert, dass der angegebene SR für 9-Loch-Plätze der 18-Loch-SR ist
+    // und für die 9-Loch-Berechnung effektiv verdoppelt werden muss im Verhältnis zum Standard-Slope von 113.
+    // Oder, dass der Slope-Divisor für 9-Loch-Plätze 56.5 (113/2) ist.
+
+    // Wir folgen deiner Formel: Slope Rating / (113/2)
+    // Diese Logik wird angewendet, wenn wir wissen, dass es ein 9-Loch Platz ist.
+    // Die Erkennung (Par < 40) ist ein Indikator.
+    if (par < 45) { // Schwelle für 9-Loch-Platz-Erkennung (z.B. Par < 45 oder < 60)
+        slopeDivider = 113 * 2; // Gemäß deiner Formel
     }
-    const firstEntry = handicapEntries[0];
-    const lastEntry = handicapEntries[handicapEntries.length - 1];
-    const firstRangeParts = firstEntry.hcpi_range.split("–").map(s => s.trim());
-    const minPossible = parseFloat(firstRangeParts[0].replace(",","."));
-    const lastRangeParts = lastEntry.hcpi_range.split("–").map(s => s.trim());
-    const maxPossible = parseFloat(lastRangeParts[lastRangeParts.length -1].replace(",","."));
-    if (hcpi < minPossible) return firstEntry.course_hcp;
-    if (hcpi > maxPossible) return lastEntry.course_hcp;
-    return "Außerh. Bereich";
+
+    const courseHandicapExact = hcpi * (sr / slopeDivider) + (cr - par);
+    return Math.round(courseHandicapExact); 
 }
 
 const teeOptions = [
@@ -35,119 +39,151 @@ const teeOptions = [
     { label: "Herren (rot)", value: "Herren_Rot", gender: "Herren", color: "Rot" },
 ];
 
-const CLUB_NAME = "Golfclub Schloß Horst (4533)";
-const COURSE_18_HOLE = "Platz 1-18 AB";
-const COURSE_9_HOLE = "Platz A 1-9";
+const defaultTeeValue = "Herren_Gelb"; 
 
 function App() {
-  const [appMode, setAppMode] = useState('single'); // 'single' oder 'team'
+  const clubNames = Object.keys(golfData);
+  const [selectedClubName, setSelectedClubName] = useState(clubNames[0] || "");
+  
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [selectedCourseName, setSelectedCourseName] = useState("");
+  const [selectedCoursePar, setSelectedCoursePar] = useState(null); // Neu: Par des ausgewählten Platzes
 
-  // Spieler 1
-  const [selectedTee1, setSelectedTee1] = useState(teeOptions[0].value);
+  const [appMode, setAppMode] = useState('single'); 
+
+  // Spieler States
+  const [selectedTee1, setSelectedTee1] = useState(defaultTeeValue);
   const [hcpInput1, setHcpInput1] = useState('');
-  const [courseHcp18P1, setCourseHcp18P1] = useState(null);
-  const [courseHcp9P1, setCourseHcp9P1] = useState(null);
+  const [courseHcpP1, setCourseHcpP1] = useState(null);
 
-  // Spieler 2
-  const [selectedTee2, setSelectedTee2] = useState(teeOptions[0].value);
+  const [selectedTee2, setSelectedTee2] = useState(defaultTeeValue);
   const [hcpInput2, setHcpInput2] = useState('');
-  const [courseHcp18P2, setCourseHcp18P2] = useState(null);
-  const [courseHcp9P2, setCourseHcp9P2] = useState(null);
+  const [courseHcpP2, setCourseHcpP2] = useState(null);
 
-  // Spieler 3 (für Team)
-  const [selectedTee3, setSelectedTee3] = useState(teeOptions[0].value);
+  const [selectedTee3, setSelectedTee3] = useState(defaultTeeValue);
   const [hcpInput3, setHcpInput3] = useState('');
-  const [courseHcp18P3, setCourseHcp18P3] = useState(null);
-  const [courseHcp9P3, setCourseHcp9P3] = useState(null);
+  const [courseHcpP3, setCourseHcpP3] = useState(null);
 
-  // Spieler 4 (für Team)
-  const [selectedTee4, setSelectedTee4] = useState(teeOptions[0].value);
+  const [selectedTee4, setSelectedTee4] = useState(defaultTeeValue);
   const [hcpInput4, setHcpInput4] = useState('');
-  const [courseHcp18P4, setCourseHcp18P4] = useState(null);
-  const [courseHcp9P4, setCourseHcp9P4] = useState(null);
+  const [courseHcpP4, setCourseHcpP4] = useState(null);
 
   // Einzel Matchplay Vorgabe
-  const [matchplayVorgabe18Single, setMatchplayVorgabe18Single] = useState('---');
-  const [matchplayVorgabe9Single, setMatchplayVorgabe9Single] = useState('---');
-  const [receivingPlayer18Single, setReceivingPlayer18Single] = useState('');
-  const [receivingPlayer9Single, setReceivingPlayer9Single] = useState('');
-  const [diff18Single, setDiff18Single] = useState(null); 
-  const [diff9Single, setDiff9Single] = useState(null);   
-
+  const [matchplayVorgabeSingle, setMatchplayVorgabeSingle] = useState('---');
+  const [receivingPlayerSingle, setReceivingPlayerSingle] = useState('');
+  const [diffSingle, setDiffSingle] = useState(null); 
 
   // Team Handicaps
-  const [teamAHandicap18, setTeamAHandicap18] = useState(null);
-  const [teamAHandicap9, setTeamAHandicap9] = useState(null);
-  const [teamBHandicap18, setTeamBHandicap18] = useState(null);
-  const [teamBHandicap9, setTeamBHandicap9] = useState(null);
+  const [teamAHandicap, setTeamAHandicap] = useState(null);
+  const [teamBHandicap, setTeamBHandicap] = useState(null);
 
   // Team Matchplay Vorgabe
-  const [matchplayVorgabe18Team, setMatchplayVorgabe18Team] = useState('---');
-  const [matchplayVorgabe9Team, setMatchplayVorgabe9Team] = useState('---');
-  const [receivingTeam18, setReceivingTeam18] = useState('');
-  const [receivingTeam9, setReceivingTeam9] = useState('');
-  const [teamDiff18, setTeamDiff18] = useState(null); // Für Detailanzeige Team-Matchplay
-  const [teamDiff9, setTeamDiff9] = useState(null);   // Für Detailanzeige Team-Matchplay
+  const [matchplayVorgabeTeam, setMatchplayVorgabeTeam] = useState('---');
+  const [receivingTeam, setReceivingTeam] = useState('');
+  const [teamDiff, setTeamDiff] = useState(null); 
 
-
-  const calculatePlayerCourseHcp = (hcpInput, selectedTeeValue, setCourseHcp18, setCourseHcp9) => {
-    if (!selectedTeeValue || hcpInput === '') {
-      setCourseHcp18(null); setCourseHcp9(null); return;
+  // Effekt zum Aktualisieren der verfügbaren Plätze und des ausgewählten Platzes bei Clubwechsel
+  useEffect(() => {
+    if (selectedClubName && golfData[selectedClubName]) {
+      const courses = Object.keys(golfData[selectedClubName]);
+      setAvailableCourses(courses);
+      if (courses.length > 0) {
+        setSelectedCourseName(courses[0]);
+        // Par des initial ausgewählten Platzes setzen (benötigt Zugriff auf Gender/Farbe, nehmen wir Standard oder ersten verfügbaren)
+        // Dies ist etwas knifflig, da Par von Gender/Farbe abhängt.
+        // Für die Formel brauchen wir Par des *spezifischen Abschlags*.
+        // Wir setzen hier erstmal nur den Namen, Par wird in calculatePlayerCourseHcpAndUpdateState relevant.
+      } else {
+        setSelectedCourseName("");
+      }
+    } else {
+      setAvailableCourses([]);
+      setSelectedCourseName("");
     }
-    const hcpi = parseFloat(hcpInput.replace(',', '.'));
+  }, [selectedClubName]);
+
+  // Effekt zum Setzen des Par-Wertes des aktuell ausgewählten Abschlags (für den ersten Spieler als Referenz)
+  // Dies dient nur der Anzeige oder einer groben 9/18-Loch-Erkennung, wenn benötigt.
+  // Die exakte Par-Nutzung erfolgt in der Hauptberechnungsfunktion.
+  useEffect(() => {
+    if (selectedClubName && selectedCourseName && selectedTee1) {
+        const teeInfo = teeOptions.find(t => t.value === selectedTee1);
+        if (teeInfo && teeInfo.gender && teeInfo.color) {
+            const courseDetails = golfData[selectedClubName]?.[selectedCourseName]?.[teeInfo.gender]?.[teeInfo.color];
+            if (courseDetails && typeof courseDetails.Par === 'number') {
+                setSelectedCoursePar(courseDetails.Par);
+            } else {
+                setSelectedCoursePar(null);
+            }
+        } else {
+            setSelectedCoursePar(null);
+        }
+    } else {
+        setSelectedCoursePar(null);
+    }
+  }, [selectedClubName, selectedCourseName, selectedTee1]);
+
+
+  // Funktion zur Berechnung der Spielvorgabe für einen Spieler
+  const calculatePlayerCourseHcpAndUpdateState = (
+    hcpInputString, 
+    selectedTeeValue, 
+    currentClubName,
+    currentCourseName, 
+    setCourseHcpState 
+  ) => {
+    if (!selectedTeeValue || hcpInputString === '' || !currentClubName || !currentCourseName) {
+      setCourseHcpState(null); 
+      return;
+    }
+    const hcpi = parseFloat(hcpInputString.replace(',', '.'));
     if (isNaN(hcpi)) {
-      setCourseHcp18(null); setCourseHcp9(null); return;
+      setCourseHcpState(null); 
+      return;
     }
+
     const selectedOption = teeOptions.find(option => option.value === selectedTeeValue);
     if (!selectedOption || !selectedOption.gender || !selectedOption.color) {
-      setCourseHcp18(null); setCourseHcp9(null); return;
+      setCourseHcpState(null); 
+      return;
     }
     const { gender, color } = selectedOption;
-    try {
-      const teeData18 = golfData[CLUB_NAME]?.[COURSE_18_HOLE]?.[gender]?.[color];
-      const hcp18Val = teeData18?.handicaps ? findCourseHcp(hcpi, teeData18.handicaps) : null;
-      setCourseHcp18(typeof hcp18Val === 'number' ? hcp18Val : null);
 
-      const teeData9 = golfData[CLUB_NAME]?.[COURSE_9_HOLE]?.[gender]?.[color];
-      const hcp9Val = teeData9?.handicaps ? findCourseHcp(hcpi, teeData9.handicaps) : null;
-      setCourseHcp9(typeof hcp9Val === 'number' ? hcp9Val : null);
+    try {
+      const courseSpecificData = golfData[currentClubName]?.[currentCourseName]?.[gender]?.[color];
+      if (courseSpecificData) {
+        const { CR, SR, Par } = courseSpecificData;
+        // Die Funktion calculateCourseHcpByFormula verwendet jetzt Par, um 9/18 Loch zu unterscheiden
+        const ch = calculateCourseHcpByFormula(hcpi, CR, SR, Par);
+        setCourseHcpState(ch);
+      } else {
+        setCourseHcpState(null); 
+      }
     } catch (error) {
-      console.error("Error calculating course HCP:", error);
-      setCourseHcp18(null); setCourseHcp9(null);
+      console.error("Error calculating course HCP with formula:", error);
+      setCourseHcpState(null); 
     }
   };
 
-  useEffect(() => { calculatePlayerCourseHcp(hcpInput1, selectedTee1, setCourseHcp18P1, setCourseHcp9P1); }, [hcpInput1, selectedTee1]);
-  useEffect(() => { calculatePlayerCourseHcp(hcpInput2, selectedTee2, setCourseHcp18P2, setCourseHcp9P2); }, [hcpInput2, selectedTee2]);
-  useEffect(() => { calculatePlayerCourseHcp(hcpInput3, selectedTee3, setCourseHcp18P3, setCourseHcp9P3); }, [hcpInput3, selectedTee3]);
-  useEffect(() => { calculatePlayerCourseHcp(hcpInput4, selectedTee4, setCourseHcp18P4, setCourseHcp9P4); }, [hcpInput4, selectedTee4]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput1, selectedTee1, selectedClubName, selectedCourseName, setCourseHcpP1); }, [hcpInput1, selectedTee1, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput2, selectedTee2, selectedClubName, selectedCourseName, setCourseHcpP2); }, [hcpInput2, selectedTee2, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput3, selectedTee3, selectedClubName, selectedCourseName, setCourseHcpP3); }, [hcpInput3, selectedTee3, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput4, selectedTee4, selectedClubName, selectedCourseName, setCourseHcpP4); }, [hcpInput4, selectedTee4, selectedClubName, selectedCourseName]);
 
   // Effekt für Einzel-Matchplay-Vorgabe
   useEffect(() => {
-    if (courseHcp18P1 !== null && courseHcp18P2 !== null) {
-      const diff = Math.abs(courseHcp18P1 - courseHcp18P2);
-      setDiff18Single(diff); 
-      const strokes = Math.round(diff * 0.75); // Korrigierte Rundung: kaufmännisch
-      setMatchplayVorgabe18Single(strokes);
-      if (courseHcp18P1 > courseHcp18P2) setReceivingPlayer18Single('Spieler 1 erhält');
-      else if (courseHcp18P2 > courseHcp18P1) setReceivingPlayer18Single('Spieler 2 erhält');
-      else setReceivingPlayer18Single('Kein Spieler erhält');
+    if (courseHcpP1 !== null && courseHcpP2 !== null) {
+      const diff = Math.abs(courseHcpP1 - courseHcpP2);
+      setDiffSingle(diff); 
+      const strokes = Math.round(diff * 0.75); 
+      setMatchplayVorgabeSingle(strokes);
+      if (courseHcpP1 > courseHcpP2) setReceivingPlayerSingle('Spieler 1 erhält');
+      else if (courseHcpP2 > courseHcpP1) setReceivingPlayerSingle('Spieler 2 erhält');
+      else setReceivingPlayerSingle('Kein Spieler erhält');
     } else {
-      setMatchplayVorgabe18Single('---'); setReceivingPlayer18Single(''); setDiff18Single(null);
+      setMatchplayVorgabeSingle('---'); setReceivingPlayerSingle(''); setDiffSingle(null);
     }
-
-    if (courseHcp9P1 !== null && courseHcp9P2 !== null) {
-      const diff = Math.abs(courseHcp9P1 - courseHcp9P2);
-      setDiff9Single(diff); 
-      const strokes = Math.round(diff * 0.75); // Korrigierte Rundung: kaufmännisch
-      setMatchplayVorgabe9Single(strokes);
-      if (courseHcp9P1 > courseHcp9P2) setReceivingPlayer9Single('Spieler 1 erhält');
-      else if (courseHcp9P2 > courseHcp9P1) setReceivingPlayer9Single('Spieler 2 erhält');
-      else setReceivingPlayer9Single('Kein Spieler erhält');
-    } else {
-      setMatchplayVorgabe9Single('---'); setReceivingPlayer9Single(''); setDiff9Single(null);
-    }
-  }, [courseHcp18P1, courseHcp18P2, courseHcp9P1, courseHcp9P2]);
+  }, [courseHcpP1, courseHcpP2]);
 
 
   // Funktion zur Berechnung eines Team-Handicaps
@@ -161,50 +197,33 @@ function App() {
 
   // Effekt für Team A Handicap
   useEffect(() => {
-    setTeamAHandicap18(calculateTeamHandicap(courseHcp18P1, courseHcp18P2));
-    setTeamAHandicap9(calculateTeamHandicap(courseHcp9P1, courseHcp9P2));
-  }, [courseHcp18P1, courseHcp18P2, courseHcp9P1, courseHcp9P2]);
+    setTeamAHandicap(calculateTeamHandicap(courseHcpP1, courseHcpP2));
+  }, [courseHcpP1, courseHcpP2]);
 
   // Effekt für Team B Handicap
   useEffect(() => {
-    setTeamBHandicap18(calculateTeamHandicap(courseHcp18P3, courseHcp18P4));
-    setTeamBHandicap9(calculateTeamHandicap(courseHcp9P3, courseHcp9P4));
-  }, [courseHcp18P3, courseHcp18P4, courseHcp9P3, courseHcp9P4]);
+    setTeamBHandicap(calculateTeamHandicap(courseHcpP3, courseHcpP4));
+  }, [courseHcpP3, courseHcpP4]);
 
   // Effekt für Team-Matchplay-Vorgabe
   useEffect(() => {
-    if (teamAHandicap18 !== null && teamBHandicap18 !== null) {
-      const diff = Math.abs(teamAHandicap18 - teamBHandicap18);
-      setTeamDiff18(diff); 
+    if (teamAHandicap !== null && teamBHandicap !== null) {
+      const diff = Math.abs(teamAHandicap - teamBHandicap);
+      setTeamDiff(diff); 
       const strokes = Math.round(diff); 
-      setMatchplayVorgabe18Team(strokes);
-      if (teamAHandicap18 > teamBHandicap18) setReceivingTeam18('Team A erhält');
-      else if (teamBHandicap18 > teamAHandicap18) setReceivingTeam18('Team B erhält');
-      else setReceivingTeam18('Kein Team erhält');
+      setMatchplayVorgabeTeam(strokes);
+      if (teamAHandicap > teamBHandicap) setReceivingTeam('Team A erhält');
+      else if (teamBHandicap > teamAHandicap) setReceivingTeam('Team B erhält');
+      else setReceivingTeam('Kein Team erhält');
     } else {
-      setMatchplayVorgabe18Team('---'); setReceivingTeam18(''); setTeamDiff18(null);
+      setMatchplayVorgabeTeam('---'); setReceivingTeam(''); setTeamDiff(null);
     }
+  }, [teamAHandicap, teamBHandicap]);
 
-    if (teamAHandicap9 !== null && teamBHandicap9 !== null) {
-      const diff = Math.abs(teamAHandicap9 - teamBHandicap9);
-      setTeamDiff9(diff); 
-      const strokes = Math.round(diff); 
-      setMatchplayVorgabe9Team(strokes);
-      if (teamAHandicap9 > teamBHandicap9) setReceivingTeam9('Team A erhält');
-      else if (teamBHandicap9 > teamAHandicap9) setReceivingTeam9('Team B erhält');
-      else setReceivingTeam9('Kein Team erhält');
-    } else {
-      setMatchplayVorgabe9Team('---'); setReceivingTeam9(''); setTeamDiff9(null);
-    }
-  }, [teamAHandicap18, teamBHandicap18, teamAHandicap9, teamBHandicap9]);
-
-  // Hilfskomponente für die kompakte Spielvorgabenanzeige
-  const PlayerHcpDisplay = ({ hcp18, hcp9, labelPrefix = "Spielvorgabe" }) => (
+  // Hilfskomponente für die Spielvorgabenanzeige
+  const PlayerHcpDisplay = ({ courseHcp, labelPrefix = "Spielvorgabe" }) => (
     <div className="player-course-hcp-display compact">
-      <span>{labelPrefix}: </span>
-      <span className="hcp-value">18 Loch: <strong>{hcp18 !== null ? hcp18 : '-'}</strong></span>
-      <span className="hcp-separator">|</span>
-      <span className="hcp-value">9 Loch: <strong>{hcp9 !== null ? hcp9 : '-'}</strong></span>
+      <span>{labelPrefix} ({selectedCourseName || 'Platz wählen'}): <strong>{courseHcp !== null ? courseHcp : '-'}</strong></span>
     </div>
   );
 
@@ -213,12 +232,12 @@ function App() {
     teamLabel, 
     player1_ID_Label, player1_HCPI, player1_CourseHCP,
     player2_ID_Label, player2_HCPI, player2_CourseHCP,
-    teamHcpTotal, lochAnzahl 
+    teamHcpTotal
   }) => {
     if (player1_CourseHCP === null || player2_CourseHCP === null) {
       return (
         <div className="team-detail-box">
-          <h4>{teamLabel} ({lochAnzahl} Loch)</h4>
+          <h4>{teamLabel} ({selectedCourseName || 'Platz wählen'})</h4>
           <p>Spielerdaten unvollständig.</p>
           <div className="team-total-hcp">
             <span>Team-Vorgabe: </span>
@@ -230,7 +249,6 @@ function App() {
 
     const p1ActualHcpi = player1_HCPI || "N/A";
     const p2ActualHcpi = player2_HCPI || "N/A";
-
     const isP1CourseLower = player1_CourseHCP <= player2_CourseHCP;
     
     const playerLower = {
@@ -251,7 +269,7 @@ function App() {
 
     return (
       <div className="team-detail-box">
-        <h4>{teamLabel} ({lochAnzahl} Loch)</h4>
+        <h4>{teamLabel} ({selectedCourseName || 'Platz wählen'})</h4>
         <div className="player-contribution">
           <span>{playerLower.idLabel} (HCPI: {playerLower.hcpi}): Spielvorgabe {playerLower.courseHcp} * {playerLower.percent}% = <strong>{lowerContrib.toFixed(1)}</strong></span>
         </div>
@@ -270,24 +288,61 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>HCP Guru</h1>
+        {/* Clubname wird nicht mehr im Header angezeigt, sondern als Teil der Auswahl */}
       </header>
       <main>
-        <div className="mode-selector modern-tabs">
-          <button 
-            className={`tab-button ${appMode === 'single' ? 'active' : ''}`}
-            onClick={() => setAppMode('single')}
-          >
-            Einzel
-          </button>
-          <button 
-            className={`tab-button ${appMode === 'team' ? 'active' : ''}`}
-            onClick={() => setAppMode('team')}
-          >
-            Team
-          </button>
+        <div className="global-controls">
+            <div className="selectors-row"> 
+                <div className="input-group club-selector-group">
+                    <label htmlFor="club-select">Golfclub:</label>
+                    <select 
+                        id="club-select" 
+                        value={selectedClubName} 
+                        onChange={(e) => setSelectedClubName(e.target.value)}
+                    >
+                        {clubNames.map(club => (
+                            <option key={club} value={club}>
+                                {club}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                
+                {availableCourses.length > 0 && (
+                    <div className="input-group course-selector-group">
+                        <label htmlFor="course-select">Platz ({selectedCoursePar !== null ? `Par ${selectedCoursePar}` : 'Par ?'}):</label>
+                        <select
+                            id="course-select"
+                            value={selectedCourseName}
+                            onChange={(e) => setSelectedCourseName(e.target.value)}
+                        >
+                            {availableCourses.map(course => (
+                                <option key={course} value={course}>
+                                    {course}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div> 
+
+            <div className="mode-selector modern-tabs">
+            <button 
+                className={`tab-button ${appMode === 'single' ? 'active' : ''}`}
+                onClick={() => setAppMode('single')}
+            >
+                Einzel
+            </button>
+            <button 
+                className={`tab-button ${appMode === 'team' ? 'active' : ''}`}
+                onClick={() => setAppMode('team')}
+            >
+                Team
+            </button>
+            </div>
         </div>
 
+        {/* Spieler 1 Eingaben */}
         <section className="player-section">
           <h2>Spieler 1 {appMode === 'team' && '(Team A)'}</h2>
           <div className="input-group">
@@ -298,11 +353,19 @@ function App() {
           </div>
           <div className="input-group">
             <label htmlFor="hcp-input-p1">HCPI Spieler 1:</label>
-            <input type="text" id="hcp-input-p1" value={hcpInput1} onChange={(e) => setHcpInput1(e.target.value)} placeholder="z.B. 18.4"/>
+            <input 
+              type="text" 
+              inputMode="decimal"
+              id="hcp-input-p1" 
+              value={hcpInput1} 
+              onChange={(e) => setHcpInput1(e.target.value)} 
+              placeholder="z.B. 18.4 oder -2,5"
+            />
           </div>
-          <PlayerHcpDisplay hcp18={courseHcp18P1} hcp9={courseHcp9P1} />
+          <PlayerHcpDisplay courseHcp={courseHcpP1} />
         </section>
 
+        {/* Spieler 2 Eingaben */}
         <section className="player-section">
           <h2>Spieler 2 {appMode === 'team' && '(Team A)'}</h2>
           <div className="input-group">
@@ -313,55 +376,47 @@ function App() {
           </div>
           <div className="input-group">
             <label htmlFor="hcp-input-p2">HCPI Spieler 2:</label>
-            <input type="text" id="hcp-input-p2" value={hcpInput2} onChange={(e) => setHcpInput2(e.target.value)} placeholder="z.B. 22.1"/>
+            <input 
+              type="text" 
+              inputMode="decimal"
+              id="hcp-input-p2" 
+              value={hcpInput2} 
+              onChange={(e) => setHcpInput2(e.target.value)} 
+              placeholder="z.B. 22.1 oder 5,0"
+            />
           </div>
-          <PlayerHcpDisplay hcp18={courseHcp18P2} hcp9={courseHcp9P2} />
+          <PlayerHcpDisplay courseHcp={courseHcpP2} />
         </section>
 
+        {/* Einzel Matchplay Ergebnisse */}
         {appMode === 'single' && (
           <section className="results-container single-matchplay-results">
-            <h3>Einzel-Matchplay Vorgabe <br></br> (Spieler 1 vs Spieler 2)</h3>
-            {courseHcp18P1 !== null && courseHcp18P2 !== null && diff18Single !== null && (
+            <h3>Einzel-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
+            {courseHcpP1 !== null && courseHcpP2 !== null && diffSingle !== null && (
               <div className="calculation-detail">
-                <p>Berechnung 18 Loch:</p>
+                <p>Berechnung ({selectedCourseName}):</p>
                 <span>
-                  {courseHcp18P1 > courseHcp18P2 ? 
-                    `Spielvorgabe P1 (${courseHcp18P1}) - Spielvorgabe P2 (${courseHcp18P2})` : 
-                    `Spielvorgabe P2 (${courseHcp18P2}) - Spielvorgabe P1 (${courseHcp18P1})`} = {diff18Single}
+                  {courseHcpP1 > courseHcpP2 ? 
+                    `Spielvorgabe P1 (${courseHcpP1}) - Spielvorgabe P2 (${courseHcpP2})` : 
+                    `Spielvorgabe P2 (${courseHcpP2}) - Spielvorgabe P1 (${courseHcpP1})`} = {diffSingle}
                 </span>
                 <span>
-                  {diff18Single} * 75% = {(diff18Single * 0.75).toFixed(2)} ➔ Gerundet: <strong>{matchplayVorgabe18Single}</strong>
+                  {diffSingle} * 75% = {(diffSingle * 0.75).toFixed(2)} ➔ Gerundet: <strong>{matchplayVorgabeSingle}</strong>
                 </span>
               </div>
             )}
             <div className="result-box">
-              <p>18 Loch: {receivingPlayer18Single}</p>
-              <p className="result-value">{matchplayVorgabe18Single} {matchplayVorgabe18Single !== '---' && matchplayVorgabe18Single !== 0 ? (matchplayVorgabe18Single === 1 ? "Schlag" : "Schläge") : ""}</p>
-            </div>
-
-            {courseHcp9P1 !== null && courseHcp9P2 !== null && diff9Single !== null && (
-              <div className="calculation-detail">
-                <p>Berechnung 9 Loch:</p>
-                <span>
-                  {courseHcp9P1 > courseHcp9P2 ? 
-                    `Spielvorgabe P1 (${courseHcp9P1}) - Spielvorgabe P2 (${courseHcp9P2})` : 
-                    `Spielvorgabe P2 (${courseHcp9P2}) - Spielvorgabe P1 (${courseHcp9P1})`} = {diff9Single}
-                </span>
-                <span>
-                  {diff9Single} * 75% = {(diff9Single * 0.75).toFixed(2)} ➔ Gerundet: <strong>{matchplayVorgabe9Single}</strong>
-                </span>
-              </div>
-            )}
-            <div className="result-box">
-              <p>9 Loch: {receivingPlayer9Single}</p>
-              <p className="result-value">{matchplayVorgabe9Single} {matchplayVorgabe9Single !== '---' && matchplayVorgabe9Single !== 0 ? (matchplayVorgabe9Single === 1 ? "Schlag" : "Schläge") : ""}</p>
+              <p></p>
+              <p className="result-value">{receivingPlayerSingle} {matchplayVorgabeSingle} {matchplayVorgabeSingle !== '---' && matchplayVorgabeSingle !== 0 ? (matchplayVorgabeSingle === 1 ? "Schlag" : "Schläge") : ""}</p>
             </div>
           </section>
         )}
         
+        {/* Team Modus */}
         {appMode === 'team' && (
           <>
             <hr className="section-divider" />
+            {/* Spieler 3 Eingaben */}
             <section className="player-section">
               <h2>Spieler 3 (Team B)</h2>
               <div className="input-group">
@@ -372,11 +427,19 @@ function App() {
               </div>
               <div className="input-group">
                 <label htmlFor="hcp-input-p3">HCPI Spieler 3:</label>
-                <input type="text" id="hcp-input-p3" value={hcpInput3} onChange={(e) => setHcpInput3(e.target.value)} placeholder="z.B. 10.5"/>
+                <input 
+                  type="text" 
+                  inputMode="decimal"
+                  id="hcp-input-p3" 
+                  value={hcpInput3} 
+                  onChange={(e) => setHcpInput3(e.target.value)} 
+                  placeholder="z.B. 10.5 oder -1,0"
+                />
               </div>
-              <PlayerHcpDisplay hcp18={courseHcp18P3} hcp9={courseHcp9P3} />
+              <PlayerHcpDisplay courseHcp={courseHcpP3} />
             </section>
 
+            {/* Spieler 4 Eingaben */}
             <section className="player-section">
               <h2>Spieler 4 (Team B)</h2>
               <div className="input-group">
@@ -387,66 +450,50 @@ function App() {
               </div>
               <div className="input-group">
                 <label htmlFor="hcp-input-p4">HCPI Spieler 4:</label>
-                <input type="text" id="hcp-input-p4" value={hcpInput4} onChange={(e) => setHcpInput4(e.target.value)} placeholder="z.B. 15.0"/>
+                <input 
+                  type="text" 
+                  inputMode="decimal"
+                  id="hcp-input-p4" 
+                  value={hcpInput4} 
+                  onChange={(e) => setHcpInput4(e.target.value)} 
+                  placeholder="z.B. 15.0 oder 3,2"
+                />
               </div>
-              <PlayerHcpDisplay hcp18={courseHcp18P4} hcp9={courseHcp9P4} />
+              <PlayerHcpDisplay courseHcp={courseHcpP4} />
             </section>
 
+            {/* Team Spielvorgaben Anzeige */}
             <section className="results-container team-handicap-display">
-                <h3>Team Spielvorgaben</h3>
+                <h3>Team Spielvorgaben ({selectedCourseName || 'Platz wählen'})</h3>
                 <TeamHcpDetailDisplay 
                     teamLabel="Team A"
-                    player1_ID_Label="Spieler 1" player1_HCPI={hcpInput1} player1_CourseHCP={courseHcp18P1}
-                    player2_ID_Label="Spieler 2" player2_HCPI={hcpInput2} player2_CourseHCP={courseHcp18P2}
-                    teamHcpTotal={teamAHandicap18} lochAnzahl={18}
-                />
-                <TeamHcpDetailDisplay 
-                    teamLabel="Team A"
-                    player1_ID_Label="Spieler 1" player1_HCPI={hcpInput1} player1_CourseHCP={courseHcp9P1}
-                    player2_ID_Label="Spieler 2" player2_HCPI={hcpInput2} player2_CourseHCP={courseHcp9P2}
-                    teamHcpTotal={teamAHandicap9} lochAnzahl={9}
+                    player1_ID_Label="Spieler 1" player1_HCPI={hcpInput1} player1_CourseHCP={courseHcpP1}
+                    player2_ID_Label="Spieler 2" player2_HCPI={hcpInput2} player2_CourseHCP={courseHcpP2}
+                    teamHcpTotal={teamAHandicap} 
                 />
                 <hr className="team-divider" />
                 <TeamHcpDetailDisplay 
                     teamLabel="Team B"
-                    player1_ID_Label="Spieler 3" player1_HCPI={hcpInput3} player1_CourseHCP={courseHcp18P3}
-                    player2_ID_Label="Spieler 4" player2_HCPI={hcpInput4} player2_CourseHCP={courseHcp18P4}
-                    teamHcpTotal={teamBHandicap18} lochAnzahl={18}
-                />
-                <TeamHcpDetailDisplay 
-                    teamLabel="Team B"
-                    player1_ID_Label="Spieler 3" player1_HCPI={hcpInput3} player1_CourseHCP={courseHcp9P3}
-                    player2_ID_Label="Spieler 4" player2_HCPI={hcpInput4} player2_CourseHCP={courseHcp9P4}
-                    teamHcpTotal={teamBHandicap9} lochAnzahl={9}
+                    player1_ID_Label="Spieler 3" player1_HCPI={hcpInput3} player1_CourseHCP={courseHcpP3}
+                    player2_ID_Label="Spieler 4" player2_HCPI={hcpInput4} player2_CourseHCP={courseHcpP4}
+                    teamHcpTotal={teamBHandicap}
                 />
             </section>
 
+            {/* Team Matchplay Ergebnisse */}
             <section className="results-container team-matchplay-results">
-              <h3>Team-Matchplay Vorgabe <br></br> (Team A vs Team B)</h3>
-              {teamAHandicap18 !== null && teamBHandicap18 !== null && teamDiff18 !== null && (
+              <h3>Team-Matchplay Vorgabe ({selectedCourseName || 'Platz wählen'})</h3>
+              {teamAHandicap !== null && teamBHandicap !== null && teamDiff !== null && (
                 <div className="calculation-detail">
-                  <p>Berechnung 18 Loch Team-Vorgabe:</p>
+                  <p>Berechnung Team-Vorgabe ({selectedCourseName}):</p>
                   <span>
-                    |{teamAHandicap18.toFixed(1)} (Team A) - {teamBHandicap18.toFixed(1)} (Team B)| = {teamDiff18.toFixed(1)}
+                    |{teamAHandicap.toFixed(1)} (Team A) - {teamBHandicap.toFixed(1)} (Team B)| = {teamDiff.toFixed(1)}
                   </span>
                 </div>
               )}
               <div className="result-box">
-                <p>18 Loch: {receivingTeam18}</p>
-                <p className="result-value">{matchplayVorgabe18Team} {matchplayVorgabe18Team !== '---' && matchplayVorgabe18Team !== 0 ? (matchplayVorgabe18Team === 1 ? "Schlag" : "Schläge") : ""}</p>
-              </div>
-
-              {teamAHandicap9 !== null && teamBHandicap9 !== null && teamDiff9 !== null && (
-                <div className="calculation-detail">
-                  <p>Berechnung 9 Loch Team-Vorgabe:</p>
-                  <span>
-                    |{teamAHandicap9.toFixed(1)} (Team A) - {teamBHandicap9.toFixed(1)} (Team B)| = {teamDiff9.toFixed(1)}
-                  </span>
-                </div>
-              )}
-              <div className="result-box">
-                <p>9 Loch: {receivingTeam9}</p>
-                <p className="result-value">{matchplayVorgabe9Team} {matchplayVorgabe9Team !== '---' && matchplayVorgabe9Team !== 0 ? (matchplayVorgabe9Team === 1 ? "Schlag" : "Schläge") : ""}</p>
+                <p></p>
+                <p className="result-value">{receivingTeam} {matchplayVorgabeTeam} {matchplayVorgabeTeam !== '---' && matchplayVorgabeTeam !== 0 ? (matchplayVorgabeTeam === 1 ? "Schlag" : "Schläge") : ""}</p>
               </div>
             </section>
           </>
