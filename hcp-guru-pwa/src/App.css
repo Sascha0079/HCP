@@ -28,7 +28,7 @@ code {
 
 /* Header-Bereich */
 .App-header {
-  background-image: url('/images/banner3.png'); /* Pfad anpassen */
+  background-image: url('/images/banner601.png'); /* Pfad anpassen */
   background-size: cover;
   /*background-size: contain; */
   background-position: center center;
@@ -41,7 +41,7 @@ code {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
   position: relative; 
-  min-height: 90px; /* Reduzierte Mindesthöhe, da kein Text mehr drin ist */
+  min-height: 100px; /* Reduzierte Mindesthöhe, da kein Text mehr drin ist */
   display: flex; 
   justify-content: center;
   align-items: center;
