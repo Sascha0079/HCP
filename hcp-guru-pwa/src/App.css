@@ -401,7 +401,7 @@ main {
   font-weight: 700;
   font-size: 1.2em; 
   color: #0B2641; 
-  
+
 }
 
 /* Detailanzeige für Berechnungen */
@@ -507,6 +507,136 @@ main {
 
 
 
+/* --- STILE FÜR CUSTOM WHEEL PICKER --- */
+.hcp-picker-group {
+  margin-bottom: 20px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 10px; 
+  flex-wrap: wrap; 
+}
+
+.hcp-picker-group .input-label.hcp-main-label { 
+  margin-bottom: 0; 
+  font-weight: 700;
+  color: #555;
+  font-size: 1em; 
+  white-space: nowrap; 
+  align-self: center; 
+}
+
+.hcp-pickers { 
+  display: flex;
+  align-items: center;
+  gap: 0px; 
+  background: white;
+  padding: 5px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Leichter Schatten für den Picker-Container */
+  position: relative; /* Für den Selektionsindikator */
+}
+
+/* Visueller Selektionsindikator für die Mitte der Wheels */
+.hcp-pickers::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5px; /* Startet nach dem Padding des .hcp-pickers Containers */
+  right: 5px; /* Endet vor dem Padding des .hcp-pickers Containers */
+  height: 30px; /* Sollte itemHeight aus WheelPicker JS entsprechen */
+  transform: translateY(-50%);
+  background-color: rgba(11, 38, 65, 0.07); /* Sehr helle Akzentfarbe als Indikator */
+  border-top: 1px solid rgba(11, 38, 65, 0.2);
+  border-bottom: 1px solid rgba(11, 38, 65, 0.2);
+  border-radius: 4px;
+  pointer-events: none; /* Lässt Klicks/Scrolls durch */
+  z-index: 0; /* Unter den Wheel-Items, aber über dem .hcp-pickers Hintergrund */
+}
+
+
+.wheel-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Kein expliziter margin hier, wird durch .hcp-pickers gap gesteuert */
+}
+
+.wheel {
+  width: 60px; /* Etwas schmaler für kompaktere Optik */
+  height: 90px; /* Zeigt 3 Elemente bei itemHeight 30px (muss mit JS itemHeight übereinstimmen) */
+  overflow-y: scroll;
+  text-align: center;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch; 
+  border: none; /* Kein eigener Rand für das Wheel, der Rahmen ist am .hcp-pickers */
+  scrollbar-width: none; 
+  -ms-overflow-style: none;  
+  position: relative; /* Wichtig für z-index der Items gegenüber dem Indikator */
+  z-index: 1;
+}
+.wheel::-webkit-scrollbar { 
+  display: none;
+}
+
+.wheel-item {
+  height: 30px; /* Muss mit itemHeight in JS übereinstimmen */
+  line-height: 30px; 
+  scroll-snap-align: center; 
+  font-size: 1.1em; 
+  color: #6c757d; /* Gedämpfte Farbe für nicht ausgewählte Elemente */
+  cursor: default; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: font-size 0.1s ease-out, color 0.1s ease-out; /* Sanfter Übergang */
+}
+.wheel-item.wheel-padding { 
+    visibility: hidden; 
+}
+.wheel-item.selected { 
+  font-weight: bold;
+  color: #0B2641; 
+  font-size: 1.3em; 
+}
+
+.hcp-decimal-separator {
+  font-size: 1.6em; 
+  font-weight: bold;
+  padding: 0 3px; /* Etwas enger */
+  color: #333;
+  align-self: center; 
+  z-index: 1; /* Stellt sicher, dass der Punkt über dem Indikator liegt */
+  background-color: white; /* Verhindert, dass der Indikator durchscheint */
+}
+
+/* Veraltete Stile für <select>-basierte HCP-Picker (auskommentiert) */
+/*
+.hcp-pickers select.hcp-select { 
+  padding: 10px 8px; 
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+  background-color: white;
+  flex-grow: 0; 
+  flex-shrink: 0; 
+  width: auto; 
+  min-width: 65px; 
+  text-align: center; 
+  -webkit-appearance: none; 
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); 
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.1em; 
+}
+.hcp-pickers select.hcp-select:focus {
+    border-color: #0B2641; 
+    box-shadow: 0 0 0 3px rgba(11, 38, 65, 0.3);
+    outline: none; 
+}
+*/
 /* Media Queries für Responsivität */
 @media (max-width: 600px) {
   .selectors-row {
