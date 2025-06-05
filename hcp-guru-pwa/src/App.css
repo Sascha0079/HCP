@@ -21,7 +21,7 @@ code {
 /* Haupt-App-Container */
 .App {
   text-align: center;
-  max-width: 600px; 
+  max-width: 550px; 
   margin: 0 auto; 
   padding: 0 15px 20px 15px; 
 }
@@ -41,7 +41,7 @@ code {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
   position: relative; 
-  min-height: 130px; /* Reduzierte Mindesthöhe, da kein Text mehr drin ist */
+  min-height: 80px; /* Reduzierte Mindesthöhe, da kein Text mehr drin ist */
   display: flex; 
   justify-content: center;
   align-items: center;
