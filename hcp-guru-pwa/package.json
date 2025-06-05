@@ -13,17 +13,17 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
-
-"scripts": {
-  "start": "react-scripts start",
-  "build": "node -p \"'REACT_APP_BUILD_TIME=' + new Date().toISOString()\" > .env.production && react-scripts build",
-  "test": "react-scripts test",
-  "eject": "react-scripts eject",
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d build"
-},
-
-
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "node -p \"'REACT_APP_BUILD_TIME=' + new Date().toISOString()\" > .env.production && react-scripts build",
+    "build:staging": "node -p \"'REACT_APP_BUILD_TIME=' + new Date().toISOString()\" > .env.production && PUBLIC_URL=\"https://Sascha0079.github.io/hcp-guru-pwa/staging\" react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "predeploy:prod": "npm run build",
+    "deploy:prod": "gh-pages -d build",
+    "predeploy:staging": "npm run build:staging",
+    "deploy:staging": "gh-pages -d build --dest staging"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",

@@ -7,8 +7,9 @@ export const golfData = {
         "Rot":  { "CR": 67.1, "SR": 118, "Par": 70 }
       },
       "Damen": {
-        "Gelb": { "CR": 77.2, "SR": 133, "Par": 72 },
-        "Rot":  { "CR": 72.8, "SR": 126, "Par": 72 }
+        
+        "Rot":  { "CR": 72.8, "SR": 126, "Par": 72 },
+        "Gelb": { "CR": 77.2, "SR": 133, "Par": 72 }
       }
     },
     "Platz 1-9": { // 9-Loch Platz
@@ -17,8 +18,9 @@ export const golfData = {
         "Rot":  { "CR": 33.6, "SR": 119, "Par": 35 }
       },
       "Damen": {
-        "Gelb": { "CR": 38.7, "SR": 133, "Par": 36 },
-        "Rot":  { "CR": 36.5, "SR": 128, "Par": 36 }
+        
+        "Rot":  { "CR": 36.5, "SR": 128, "Par": 36 },
+        "Gelb": { "CR": 38.7, "SR": 133, "Par": 36 }
       }
     }
   },
@@ -30,8 +32,8 @@ export const golfData = {
         "Rot":  { "CR": 63.4, "SR": 115, "Par": 66 }
       },
       "Damen": {
-        "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 },
-        "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 }
+        "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 },
+        "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 }
       }
     }
   // Hier könnten Daten für weitere Golfclubs folgen

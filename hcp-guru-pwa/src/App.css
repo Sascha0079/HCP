@@ -209,54 +209,153 @@ main {
 
 
 
-/* Spieler-Sektionen */
+/* Spieler-Sektionen - Allgemeine Anpassungen */
 .player-section {
   background-color: #f9f9f9;
   padding: 15px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 25px; /* Etwas mehr Abstand zwischen den Spielerblöcken */
   border: 1px solid #eee;
 }
 
 .player-section h2 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px; /* Mehr Abstand nach der Überschrift */
   color: #0B2641; 
   font-size: 1.4em;
   border-bottom: 2px solid #e0e0e0;
-  padding-bottom: 5px;
+  padding-bottom: 8px; /* Etwas mehr Padding unter der Überschrift */
 }
 
-/* Kompakte Spielvorgabenanzeige */
-.player-course-hcp-display.compact {
-  margin-top: 10px;
-  padding: 8px 10px;
-  background-color: #f0f0f0; 
-  border-radius: 6px;
-  font-size: 0.95em; 
-  display: flex; 
-  align-items: center;
-  flex-wrap: wrap; 
+/* NEU: Gruppe für Geschlecht und Abschlag, die nebeneinander liegen soll */
+.gender-tee-group {
+  display: flex;
+  flex-direction: column; /* Standard: untereinander für sehr kleine Bildschirme */
+  gap: 15px; /* Abstand zwischen Geschlecht und Abschlag, wenn untereinander */
+  margin-bottom: 20px; /* Abstand zur HCPI-Auswahl */
+}
+
+/* Untergruppe für Radio-Buttons (Geschlecht) */
+.gender-radio-group {
+  display: flex;
+  flex-direction: column; /* Label über den Radio-Optionen */
+  gap: 8px; 
+  flex: 1; /* Nimmt Platz ein, wenn in einer Reihe */
+}
+
+.gender-radio-group .input-label.sub-group-label, /* Label für die gesamte Gruppe */
+.tee-color-select-group .input-label.sub-group-label {
+  font-weight: 700;
+  color: #555;
+  font-size: 0.95em;
+  margin-bottom: 8px;
   text-align: left;
 }
 
-.player-course-hcp-display.compact span {
-  margin-right: 8px; 
+.gender-radio-group .radio-options {
+    display: flex;
+    gap: 15px; /* Abstand zwischen den Radio-Buttons */
+    align-items: center;
 }
 
-.player-course-hcp-display.compact span:last-child {
-  margin-right: 0;
+.gender-radio-group .radio-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 1em; /* Angepasst an Select-Schriftgröße */
+  color: #333;
 }
 
-.player-course-hcp-display.compact .hcp-value strong {
-  color: #0B2641; 
+.gender-radio-group input[type="radio"] {
+  margin-right: 6px;
+  accent-color: #0B2641; 
+  transform: scale(1.1); /* Macht die Radio-Buttons etwas größer */
+}
+
+/* Untergruppe für Abschlagsfarben-Select */
+.tee-color-select-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1.5; /* Gibt dem Select etwas mehr Platz als den Radios, wenn nebeneinander */
+}
+
+.tee-color-select-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+  background-color: white;
+}
+
+/* Visuelle Indikatoren für Tee-Farben im Dropdown (optional, funktioniert nicht in allen Browsern perfekt in <option>) */
+.tee-color-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
+.tee-color-red { background-color: red; }
+.tee-color-yellow { background-color: yellow; }
+.tee-color-blue { background-color: blue; }
+.tee-color-white { background-color: white; border: 1px solid #ddd; } /* Weiß braucht Rand */
+.tee-color-black { background-color: black; }
+/* Emojis werden direkt im JS eingefügt, diese Klassen sind eine Alternative/Ergänzung */
+
+
+
+/* NEU: Styling für die HCPI-Picker-Gruppe */
+.hcp-picker-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.hcp-picker-group .input-label { /* Das Label "HCPI:" */
+  display: flex;
+  margin-bottom: 8px;
   font-weight: 700;
+  color: #555;
+  font-size: 0.95em;
 }
 
-.player-course-hcp-display.compact .hcp-separator {
-  color: #aaa; 
-  margin-left: 4px;
-  margin-right: 12px; 
+.hcp-pickers {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Kleiner Abstand zwischen den beiden Selects und dem Punkt */
+}
+
+.hcp-pickers select {
+  padding: 12px 8px; /* Etwas weniger horizontales Padding für kompaktere Picker */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+  background-color: white;
+  flex-grow: 1; /* Lässt beide Selects wachsen */
+  min-width: 60px; /* Verhindert, dass sie zu schmal werden */
+}
+
+.hcp-decimal-separator {
+  font-size: 1.2em;
+  font-weight: bold;
+  padding: 0 2px;
+}
+
+/* Anpassung für Media Query, um Geschlecht und Abschlag nebeneinander zu bekommen */
+@media (min-width: 450px) { /* Oder ein anderer passender Breakpoint */
+  .gender-tee-group {
+    flex-direction: row; /* Nebeneinander */
+    align-items: center; /* Vertikal zentrieren */
+  }
+  .gender-radio-group {
+    margin-bottom: 0; /* Kein unterer Rand, wenn nebeneinander */
+    flex-shrink: 0; /* Verhindert, dass die Radiogruppe schrumpft */
+  }
+  .tee-color-select-group .input-label {
+    /* Label für Abschlag könnte hier versteckt werden, wenn es klar ist,
+       oder bleibt für Konsistenz sichtbar */
+  }
 }
 
 
