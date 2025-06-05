@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Dein bestehendes CSS
+import './App.css'; 
 import { golfData } from './golfData'; 
 
 // Funktion zur Berechnung des Course Handicaps mit der Formel
@@ -9,22 +9,20 @@ function calculateCourseHcpByFormula(hcpi, cr, sr, par) {
         return null; 
     }
     let slopeDivider = 113;
-    if (par < 45) { // Schwelle für 9-Loch-Platz-Erkennung 
-        slopeDivider = 113 / 2; 
+    // Annahme für 9-Loch basierend auf Par (Schwelle anpassen, falls genauer bekannt)
+    // Besser wäre ein explizites Kennzeichen in golfData, ob SR ein 9- oder 18-Loch-Slope ist.
+    if (par < 60) { // Beispielhafte Schwelle für 9-Loch-Platz-Erkennung
+        slopeDivider = 113 * 2; 
     }
     const courseHandicapExact = hcpi * (sr / slopeDivider) + (cr - par);
     return Math.round(courseHandicapExact); 
 }
 
-const teeOptions = [
-    { label: "Bitte wählen...", value: "", gender: null, color: null },
-    { label: "Damen (rot)", value: "Damen_Rot", gender: "Damen", color: "Rot" },
-    { label: "Herren (gelb)", value: "Herren_Gelb", gender: "Herren", color: "Gelb" },
-    { label: "Damen (gelb)", value: "Damen_Gelb", gender: "Damen", color: "Gelb" },
-    { label: "Herren (rot)", value: "Herren_Rot", gender: "Herren", color: "Rot" },
+const genderOptions = [
+    { label: "Herren", value: "Herren" },
+    { label: "Damen", value: "Damen" },
 ];
-
-const defaultTeeValue = "Herren_Gelb"; 
+const defaultGender = "Herren";
 
 function App() {
   const clubNames = Object.keys(golfData);
@@ -32,105 +30,106 @@ function App() {
   
   const [availableCourses, setAvailableCourses] = useState([]);
   const [selectedCourseName, setSelectedCourseName] = useState("");
-  const [selectedCoursePar, setSelectedCoursePar] = useState(null);
+  const [selectedCourseParForDisplay, setSelectedCourseParForDisplay] = useState(null); // Nur für Anzeige im Label
 
   const [appMode, setAppMode] = useState('single'); 
 
-  const [selectedTee1, setSelectedTee1] = useState(defaultTeeValue);
+  // --- Spieler States ---
+  // Spieler 1
+  const [selectedGenderP1, setSelectedGenderP1] = useState(defaultGender);
+  const [availableTeesP1, setAvailableTeesP1] = useState([]);
+  const [selectedTeeColorP1, setSelectedTeeColorP1] = useState("");
   const [hcpInput1, setHcpInput1] = useState('');
   const [courseHcpP1, setCourseHcpP1] = useState(null);
 
-  const [selectedTee2, setSelectedTee2] = useState(defaultTeeValue);
+  // Spieler 2
+  const [selectedGenderP2, setSelectedGenderP2] = useState(defaultGender);
+  const [availableTeesP2, setAvailableTeesP2] = useState([]);
+  const [selectedTeeColorP2, setSelectedTeeColorP2] = useState("");
   const [hcpInput2, setHcpInput2] = useState('');
   const [courseHcpP2, setCourseHcpP2] = useState(null);
 
-  const [selectedTee3, setSelectedTee3] = useState(defaultTeeValue);
+  // Spieler 3 (für Team)
+  const [selectedGenderP3, setSelectedGenderP3] = useState(defaultGender);
+  const [availableTeesP3, setAvailableTeesP3] = useState([]);
+  const [selectedTeeColorP3, setSelectedTeeColorP3] = useState("");
   const [hcpInput3, setHcpInput3] = useState('');
   const [courseHcpP3, setCourseHcpP3] = useState(null);
 
-  const [selectedTee4, setSelectedTee4] = useState(defaultTeeValue);
+  // Spieler 4 (für Team)
+  const [selectedGenderP4, setSelectedGenderP4] = useState(defaultGender);
+  const [availableTeesP4, setAvailableTeesP4] = useState([]);
+  const [selectedTeeColorP4, setSelectedTeeColorP4] = useState("");
   const [hcpInput4, setHcpInput4] = useState('');
   const [courseHcpP4, setCourseHcpP4] = useState(null);
 
+  // --- Matchplay & Team States ---
   const [matchplayVorgabeSingle, setMatchplayVorgabeSingle] = useState('---');
   const [receivingPlayerSingle, setReceivingPlayerSingle] = useState('');
   const [diffSingle, setDiffSingle] = useState(null); 
-
   const [teamAHandicap, setTeamAHandicap] = useState(null);
   const [teamBHandicap, setTeamBHandicap] = useState(null);
-
   const [matchplayVorgabeTeam, setMatchplayVorgabeTeam] = useState('---');
   const [receivingTeam, setReceivingTeam] = useState('');
   const [teamDiff, setTeamDiff] = useState(null); 
 
-  const [buildTime, setBuildTime] = useState(''); // NEU: State für Build-Zeitstempel
-
-  // NEU: Effekt zum Formatieren und Setzen des Build-Zeitstempels
-  useEffect(() => {
-    const buildTimestamp = process.env.REACT_APP_BUILD_TIME;
-    if (buildTimestamp) {
-      try {
-        const date = new Date(buildTimestamp);
-        // Formatieren des Datums, z.B. TT.MM.JJJJ HH:MM
-        const options = { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        };
-        setBuildTime(date.toLocaleString('de-DE', options) + " Uhr");
-      } catch (e) {
-        console.error("Error parsing build timestamp:", e);
-        setBuildTime("N/A");
-      }
-    } else {
-        setBuildTime("N/A");
-    }
-  }, []); // Leeres Abhängigkeitsarray, damit dies nur einmal beim Mounten ausgeführt wird
-
-
+  // Effekt zum Aktualisieren der verfügbaren Plätze bei Clubwechsel
   useEffect(() => {
     if (selectedClubName && golfData[selectedClubName]) {
       const courses = Object.keys(golfData[selectedClubName]);
       setAvailableCourses(courses);
-      if (courses.length > 0) {
-        setSelectedCourseName(courses[0]);
-      } else {
-        setSelectedCourseName("");
-      }
+      setSelectedCourseName(courses[0] || ""); 
     } else {
       setAvailableCourses([]);
       setSelectedCourseName("");
     }
   }, [selectedClubName]);
 
-  useEffect(() => {
-    if (selectedClubName && selectedCourseName && selectedTee1) {
-        const teeInfo = teeOptions.find(t => t.value === selectedTee1);
-        if (teeInfo && teeInfo.gender && teeInfo.color) {
-            const courseDetails = golfData[selectedClubName]?.[selectedCourseName]?.[teeInfo.gender]?.[teeInfo.color];
-            if (courseDetails && typeof courseDetails.Par === 'number') {
-                setSelectedCoursePar(courseDetails.Par);
-            } else {
-                setSelectedCoursePar(null);
-            }
-        } else {
-            setSelectedCoursePar(null);
-        }
+  // Funktion zum Aktualisieren der verfügbaren Abschläge und des ausgewählten Abschlags für einen Spieler
+  const updateAvailableTeesForPlayer = (club, course, gender, setAvailableTeesFunc, setSelectedTeeColorFunc) => {
+    if (club && course && gender && golfData[club]?.[course]?.[gender]) {
+      const teeColors = Object.keys(golfData[club][course][gender]);
+      setAvailableTeesFunc(teeColors);
+      setSelectedTeeColorFunc(teeColors[0] || ""); // Ersten verfügbaren Abschlag auswählen
     } else {
-        setSelectedCoursePar(null);
+      setAvailableTeesFunc([]);
+      setSelectedTeeColorFunc("");
     }
-  }, [selectedClubName, selectedCourseName, selectedTee1]);
+  };
 
+  // Effekte zum Aktualisieren der verfügbaren Abschläge für jeden Spieler
+  useEffect(() => { updateAvailableTeesForPlayer(selectedClubName, selectedCourseName, selectedGenderP1, setAvailableTeesP1, setSelectedTeeColorP1); }, [selectedClubName, selectedCourseName, selectedGenderP1]);
+  useEffect(() => { updateAvailableTeesForPlayer(selectedClubName, selectedCourseName, selectedGenderP2, setAvailableTeesP2, setSelectedTeeColorP2); }, [selectedClubName, selectedCourseName, selectedGenderP2]);
+  useEffect(() => { updateAvailableTeesForPlayer(selectedClubName, selectedCourseName, selectedGenderP3, setAvailableTeesP3, setSelectedTeeColorP3); }, [selectedClubName, selectedCourseName, selectedGenderP3]);
+  useEffect(() => { updateAvailableTeesForPlayer(selectedClubName, selectedCourseName, selectedGenderP4, setAvailableTeesP4, setSelectedTeeColorP4); }, [selectedClubName, selectedCourseName, selectedGenderP4]);
+  
+  // Effekt zum Setzen des Par-Wertes für die Anzeige im Platz-Label
+  useEffect(() => {
+      if (selectedClubName && selectedCourseName && availableTeesP1.length > 0 && selectedGenderP1) {
+          // Nimmt den ersten verfügbaren Abschlag von Spieler 1, um ein Par anzuzeigen
+          const firstTeeColor = availableTeesP1[0];
+          const courseDetails = golfData[selectedClubName]?.[selectedCourseName]?.[selectedGenderP1]?.[firstTeeColor];
+          if (courseDetails && typeof courseDetails.Par === 'number') {
+              setSelectedCourseParForDisplay(courseDetails.Par);
+          } else {
+              setSelectedCourseParForDisplay(null);
+          }
+      } else {
+          setSelectedCourseParForDisplay(null);
+      }
+  }, [selectedClubName, selectedCourseName, selectedGenderP1, availableTeesP1]);
+
+
+  // Funktion zur Berechnung der Spielvorgabe für einen Spieler
   const calculatePlayerCourseHcpAndUpdateState = (
     hcpInputString, 
-    selectedTeeValue, 
+    gender, // NEU
+    teeColor, // NEU
     currentClubName,
     currentCourseName, 
     setCourseHcpState 
   ) => {
-    if (!selectedTeeValue || hcpInputString === '' || !currentClubName || !currentCourseName) {
+    if (!gender || !teeColor || hcpInputString === '' || !currentClubName || !currentCourseName) {
       setCourseHcpState(null); 
       return;
     }
@@ -140,15 +139,8 @@ function App() {
       return;
     }
 
-    const selectedOption = teeOptions.find(option => option.value === selectedTeeValue);
-    if (!selectedOption || !selectedOption.gender || !selectedOption.color) {
-      setCourseHcpState(null); 
-      return;
-    }
-    const { gender, color } = selectedOption;
-
     try {
-      const courseSpecificData = golfData[currentClubName]?.[currentCourseName]?.[gender]?.[color];
+      const courseSpecificData = golfData[currentClubName]?.[currentCourseName]?.[gender]?.[teeColor];
       if (courseSpecificData) {
         const { CR, SR, Par } = courseSpecificData;
         const ch = calculateCourseHcpByFormula(hcpi, CR, SR, Par);
@@ -162,11 +154,13 @@ function App() {
     }
   };
 
-  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput1, selectedTee1, selectedClubName, selectedCourseName, setCourseHcpP1); }, [hcpInput1, selectedTee1, selectedClubName, selectedCourseName]);
-  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput2, selectedTee2, selectedClubName, selectedCourseName, setCourseHcpP2); }, [hcpInput2, selectedTee2, selectedClubName, selectedCourseName]);
-  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput3, selectedTee3, selectedClubName, selectedCourseName, setCourseHcpP3); }, [hcpInput3, selectedTee3, selectedClubName, selectedCourseName]);
-  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput4, selectedTee4, selectedClubName, selectedCourseName, setCourseHcpP4); }, [hcpInput4, selectedTee4, selectedClubName, selectedCourseName]);
+  // Effekte zur Berechnung der Spielvorgaben der Spieler
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput1, selectedGenderP1, selectedTeeColorP1, selectedClubName, selectedCourseName, setCourseHcpP1); }, [hcpInput1, selectedGenderP1, selectedTeeColorP1, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput2, selectedGenderP2, selectedTeeColorP2, selectedClubName, selectedCourseName, setCourseHcpP2); }, [hcpInput2, selectedGenderP2, selectedTeeColorP2, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput3, selectedGenderP3, selectedTeeColorP3, selectedClubName, selectedCourseName, setCourseHcpP3); }, [hcpInput3, selectedGenderP3, selectedTeeColorP3, selectedClubName, selectedCourseName]);
+  useEffect(() => { calculatePlayerCourseHcpAndUpdateState(hcpInput4, selectedGenderP4, selectedTeeColorP4, selectedClubName, selectedCourseName, setCourseHcpP4); }, [hcpInput4, selectedGenderP4, selectedTeeColorP4, selectedClubName, selectedCourseName]);
 
+  // Effekt für Einzel-Matchplay
   useEffect(() => {
     if (courseHcpP1 !== null && courseHcpP2 !== null) {
       const diff = Math.abs(courseHcpP1 - courseHcpP2);
@@ -181,6 +175,7 @@ function App() {
     }
   }, [courseHcpP1, courseHcpP2]);
 
+  // Team Handicap Logik
   const calculateTeamHandicap = (hcpPlayerA, hcpPlayerB) => {
     if (hcpPlayerA === null || hcpPlayerB === null) return null;
     const lowerHcp = Math.min(hcpPlayerA, hcpPlayerB);
@@ -188,15 +183,10 @@ function App() {
     const teamHcp = (lowerHcp * 0.6) + (higherHcp * 0.4);
     return Math.round(teamHcp * 10) / 10; 
   };
+  useEffect(() => { setTeamAHandicap(calculateTeamHandicap(courseHcpP1, courseHcpP2)); }, [courseHcpP1, courseHcpP2]);
+  useEffect(() => { setTeamBHandicap(calculateTeamHandicap(courseHcpP3, courseHcpP4)); }, [courseHcpP3, courseHcpP4]);
 
-  useEffect(() => {
-    setTeamAHandicap(calculateTeamHandicap(courseHcpP1, courseHcpP2));
-  }, [courseHcpP1, courseHcpP2]);
-
-  useEffect(() => {
-    setTeamBHandicap(calculateTeamHandicap(courseHcpP3, courseHcpP4));
-  }, [courseHcpP3, courseHcpP4]);
-
+  // Team Matchplay Logik
   useEffect(() => {
     if (teamAHandicap !== null && teamBHandicap !== null) {
       const diff = Math.abs(teamAHandicap - teamBHandicap);
@@ -211,12 +201,14 @@ function App() {
     }
   }, [teamAHandicap, teamBHandicap]);
 
+  // Hilfskomponente für die Spielvorgabenanzeige
   const PlayerHcpDisplay = ({ courseHcp, labelPrefix = "Spielvorgabe" }) => (
     <div className="player-course-hcp-display compact">
       <span>{labelPrefix} ({selectedCourseName || 'Platz wählen'}): <strong>{courseHcp !== null ? courseHcp : '-'}</strong></span>
     </div>
   );
 
+  // Hilfskomponente für detaillierte Team-HCP-Anzeige
   const TeamHcpDetailDisplay = ({ 
     teamLabel, 
     player1_ID_Label, player1_HCPI, player1_CourseHCP,
@@ -269,6 +261,68 @@ function App() {
     );
   };
 
+  // Helper-Komponente für Spieler-Inputs
+  const PlayerInputSection = ({ playerNum, teamLabel = "" }) => {
+    // Dynamischer Zugriff auf State und Setter basierend auf playerNum
+    const selectedGender = eval(`selectedGenderP${playerNum}`);
+    const setSelectedGender = eval(`setSelectedGenderP${playerNum}`);
+    const availableTees = eval(`availableTeesP${playerNum}`);
+    const selectedTeeColor = eval(`selectedTeeColorP${playerNum}`);
+    const setSelectedTeeColor = eval(`setSelectedTeeColorP${playerNum}`);
+    const hcpInput = eval(`hcpInput${playerNum}`);
+    const setHcpInput = eval(`setHcpInput${playerNum}`);
+    const courseHcp = eval(`courseHcpP${playerNum}`);
+
+    return (
+        <section className="player-section">
+          <h2>Spieler {playerNum} {appMode === 'team' && `(${teamLabel})`}</h2>
+          <div className="input-group">
+            <label htmlFor={`gender-select-p${playerNum}`}>Geschlecht Spieler {playerNum}:</label>
+            <select 
+                id={`gender-select-p${playerNum}`} 
+                value={selectedGender} 
+                onChange={(e) => setSelectedGender(e.target.value)}
+            >
+              {genderOptions.map(option => (
+                <option key={`p${playerNum}-gender-${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="input-group">
+            <label htmlFor={`tee-select-p${playerNum}`}>Abschlag Spieler {playerNum}:</label>
+            <select 
+                id={`tee-select-p${playerNum}`} 
+                value={selectedTeeColor} 
+                onChange={(e) => setSelectedTeeColor(e.target.value)}
+                disabled={availableTees.length === 0}
+            >
+              {availableTees.length === 0 && <option value="">- (Geschlecht wählen) -</option>}
+              {availableTees.map(teeColor => (
+                <option key={`p${playerNum}-tee-${teeColor}`} value={teeColor}>
+                  {teeColor}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="input-group">
+            <label htmlFor={`hcp-input-p${playerNum}`}>HCPI Spieler {playerNum}:</label>
+            <input 
+              type="text" 
+              inputMode="decimal"
+              id={`hcp-input-p${playerNum}`} 
+              value={hcpInput} 
+              onChange={(e) => setHcpInput(e.target.value)} 
+              placeholder="z.B. 18.4 oder -2,5"
+            />
+          </div>
+          <PlayerHcpDisplay courseHcp={courseHcp} />
+        </section>
+    );
+  };
+
+
   return (
     <div className="App">
       <header className="App-header">
@@ -290,9 +344,10 @@ function App() {
                         ))}
                     </select>
                 </div>
+                
                 {availableCourses.length > 0 && (
                     <div className="input-group course-selector-group">
-                        <label htmlFor="course-select">Platz ({selectedCoursePar !== null ? `Par ${selectedCoursePar}` : 'Par ?'}):</label>
+                        <label htmlFor="course-select">Platz ({selectedCourseParForDisplay !== null ? `Par ${selectedCourseParForDisplay}` : 'Par ?'}):</label>
                         <select
                             id="course-select"
                             value={selectedCourseName}
@@ -307,6 +362,7 @@ function App() {
                     </div>
                 )}
             </div> 
+
             <div className="mode-selector modern-tabs">
             <button 
                 className={`tab-button ${appMode === 'single' ? 'active' : ''}`}
@@ -323,49 +379,8 @@ function App() {
             </div>
         </div>
 
-        <section className="player-section">
-          <h2>Spieler 1 {appMode === 'team' && '(Team A)'}</h2>
-          <div className="input-group">
-            <label htmlFor="tee-select-p1">Abschlag Spieler 1:</label>
-            <select id="tee-select-p1" value={selectedTee1} onChange={(e) => setSelectedTee1(e.target.value)}>
-              {teeOptions.map(option => (<option key={`p1-${option.value || 'default'}`} value={option.value} disabled={option.value === ""}>{option.label}</option>))}
-            </select>
-          </div>
-          <div className="input-group">
-            <label htmlFor="hcp-input-p1">HCPI Spieler 1:</label>
-            <input 
-              type="text" 
-              inputMode="decimal"
-              id="hcp-input-p1" 
-              value={hcpInput1} 
-              onChange={(e) => setHcpInput1(e.target.value)} 
-              placeholder="z.B. 18.4 oder -2,5"
-            />
-          </div>
-          <PlayerHcpDisplay courseHcp={courseHcpP1} />
-        </section>
-
-        <section className="player-section">
-          <h2>Spieler 2 {appMode === 'team' && '(Team A)'}</h2>
-          <div className="input-group">
-            <label htmlFor="tee-select-p2">Abschlag Spieler 2:</label>
-            <select id="tee-select-p2" value={selectedTee2} onChange={(e) => setSelectedTee2(e.target.value)}>
-              {teeOptions.map(option => (<option key={`p2-${option.value || 'default'}`} value={option.value} disabled={option.value === ""}>{option.label}</option>))}
-            </select>
-          </div>
-          <div className="input-group">
-            <label htmlFor="hcp-input-p2">HCPI Spieler 2:</label>
-            <input 
-              type="text" 
-              inputMode="decimal"
-              id="hcp-input-p2" 
-              value={hcpInput2} 
-              onChange={(e) => setHcpInput2(e.target.value)} 
-              placeholder="z.B. 22.1 oder 5,0"
-            />
-          </div>
-          <PlayerHcpDisplay courseHcp={courseHcpP2} />
-        </section>
+        <PlayerInputSection playerNum={1} teamLabel="Team A" />
+        <PlayerInputSection playerNum={2} teamLabel="Team A" />
 
         {appMode === 'single' && (
           <section className="results-container single-matchplay-results">
@@ -393,50 +408,9 @@ function App() {
         {appMode === 'team' && (
           <>
             <hr className="section-divider" />
-            <section className="player-section">
-              <h2>Spieler 3 (Team B)</h2>
-              <div className="input-group">
-                <label htmlFor="tee-select-p3">Abschlag Spieler 3:</label>
-                <select id="tee-select-p3" value={selectedTee3} onChange={(e) => setSelectedTee3(e.target.value)}>
-                  {teeOptions.map(option => (<option key={`p3-${option.value || 'default'}`} value={option.value} disabled={option.value === ""}>{option.label}</option>))}
-                </select>
-              </div>
-              <div className="input-group">
-                <label htmlFor="hcp-input-p3">HCPI Spieler 3:</label>
-                <input 
-                  type="text" 
-                  inputMode="decimal"
-                  id="hcp-input-p3" 
-                  value={hcpInput3} 
-                  onChange={(e) => setHcpInput3(e.target.value)} 
-                  placeholder="z.B. 10.5 oder -1,0"
-                />
-              </div>
-              <PlayerHcpDisplay courseHcp={courseHcpP3} />
-            </section>
-
-            <section className="player-section">
-              <h2>Spieler 4 (Team B)</h2>
-              <div className="input-group">
-                <label htmlFor="tee-select-p4">Abschlag Spieler 4:</label>
-                <select id="tee-select-p4" value={selectedTee4} onChange={(e) => setSelectedTee4(e.target.value)}>
-                  {teeOptions.map(option => (<option key={`p4-${option.value || 'default'}`} value={option.value} disabled={option.value === ""}>{option.label}</option>))}
-                </select>
-              </div>
-              <div className="input-group">
-                <label htmlFor="hcp-input-p4">HCPI Spieler 4:</label>
-                <input 
-                  type="text" 
-                  inputMode="decimal"
-                  id="hcp-input-p4" 
-                  value={hcpInput4} 
-                  onChange={(e) => setHcpInput4(e.target.value)} 
-                  placeholder="z.B. 15.0 oder 3,2"
-                />
-              </div>
-              <PlayerHcpDisplay courseHcp={courseHcpP4} />
-            </section>
-
+            <PlayerInputSection playerNum={3} teamLabel="Team B" />
+            <PlayerInputSection playerNum={4} teamLabel="Team B" />
+            
             <section className="results-container team-handicap-display">
                 <h3>Team Spielvorgaben ({selectedCourseName || 'Platz wählen'})</h3>
                 <TeamHcpDetailDisplay 
@@ -473,8 +447,12 @@ function App() {
         )}
       </main>
       <footer className="App-footer">
-        <p>Alle Angaben ohne Gewähr.</p>
-        {buildTime && <p className="build-time">Letzte Aktualisierung: {buildTime}</p>} {/* NEU */}
+        <p>Alle Angaben ohne Gewähr. Offizielle DGV-Regeln und lokale Platzregeln beachten.</p>
+        {process.env.REACT_APP_BUILD_TIME && 
+            <p className="build-time">
+                Letzte Aktualisierung: {new Date(process.env.REACT_APP_BUILD_TIME).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + " Uhr"}
+            </p>
+        }
       </footer>
     </div>
   );

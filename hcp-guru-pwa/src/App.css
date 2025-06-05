@@ -205,6 +205,10 @@ main {
   outline: none; 
 }
 
+
+
+
+
 /* Spieler-Sektionen */
 .player-section {
   background-color: #f9f9f9;
@@ -418,4 +422,5 @@ main {
     margin-right: auto;
   }
 }
+
 

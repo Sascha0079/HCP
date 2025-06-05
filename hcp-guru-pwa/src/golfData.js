@@ -33,40 +33,23 @@ export const golfData = {
         "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 },
         "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 }
       }
-    },
-    
-    "Gesamt 1-18": { // 18-Loch Platz
-      "Herren": {
-        "Gelb": { "CR": 67.0, "SR": 120, "Par": 68 },
-        "Rot":  { "CR": 63.4, "SR": 115, "Par": 66 }
-      },
-      "Damen": {
-        "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 },
-        "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 }
-      }
-  },
+    }
+  // Hier könnten Daten für weitere Golfclubs folgen
+},
 
-      "Old Course": { // 18-Loch Platz
+  "Haus Leythe e.V": {
+    "1-18": { // 18-Loch Platz
       "Herren": {
-        "Gelb": { "CR": 67.0, "SR": 120, "Par": 68 },
-        "Rot":  { "CR": 63.4, "SR": 115, "Par": 66 }
+        "Gelb": { "CR": 70.2, "SR": 125, "Par": 71 },
+        "Blau":  { "CR": 69.5, "SR": 123, "Par": 71 }
       },
       "Damen": {
-        "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 },
-        "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 }
+        "Rot":  { "CR": 70.0, "SR": 124, "Par": 71 }
       }
-  },
-
-        "Jakobi": { // 18-Loch Platz
-      "Herren": {
-        "Gelb": { "CR": 67.0, "SR": 120, "Par": 68 },
-        "Rot":  { "CR": 63.4, "SR": 115, "Par": 66 }
-      },
-      "Damen": {
-        "Gelb": { "CR": 71.8, "SR": 130, "Par": 72 },
-        "Rot":  { "CR": 68.0, "SR": 116, "Par": 68 }
-      }
-  }
+    }
   // Hier könnten Daten für weitere Golfclubs folgen
 }
+
+
+
 };
